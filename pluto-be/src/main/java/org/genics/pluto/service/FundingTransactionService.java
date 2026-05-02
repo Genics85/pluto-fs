@@ -3,7 +3,6 @@ package org.genics.pluto.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.funding.FundingTransactionRequest;
-import org.genics.pluto.enums.FundingTransactionType;
 import org.genics.pluto.model.FundingAccount;
 import org.genics.pluto.model.FundingTransaction;
 import org.genics.pluto.repository.FundingAccountRepository;
