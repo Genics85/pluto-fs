@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-pluto}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pluto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-pluto}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pluto-be:
+    build: ./pluto-be
+    image: ${GHCR_IMAGE_PREFIX:-local}/pluto-be:latest
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-pluto}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pluto-network
+
+  pluto-fe:
+    build: ./pluto-fe
+    image: ${GHCR_IMAGE_PREFIX:-local}/pluto-fe:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - pluto-be
+    networks:
+      - pluto-network
+
+networks:
+  pluto-network:
+
+volumes:
+  postgres_data:

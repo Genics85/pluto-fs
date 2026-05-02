@@ -1,0 +1,84 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_prefix: ${{ steps.vars.outputs.image_prefix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image prefix
+        id: vars
+        run: echo "image_prefix=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push pluto-be
+        uses: docker/build-push-action@v6
+        with:
+          context: ./pluto-be
+          push: true
+          tags: ${{ steps.vars.outputs.image_prefix }}/pluto-be:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push pluto-fe
+        uses: docker/build-push-action@v6
+        with:
+          context: ./pluto-fe
+          push: true
+          tags: ${{ steps.vars.outputs.image_prefix }}/pluto-fe:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "~/pluto"
+
+      - name: Pull and restart containers
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_PREFIX: ${{ needs.build-and-push.outputs.image_prefix }}
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: IMAGE_PREFIX,GHCR_USER,GHCR_TOKEN,DB_PASSWORD
+          script: |
+            cd ~/pluto
+            printf "GHCR_IMAGE_PREFIX=%s\nDB_PASSWORD=%s\n" "$IMAGE_PREFIX" "$DB_PASSWORD" > .env
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
