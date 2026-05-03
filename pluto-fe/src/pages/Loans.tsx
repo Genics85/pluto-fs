@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, X } from "lucide-react";
+import { Search, Filter, Download, Eye, X, PlusCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -36,7 +36,7 @@ export default function AllLoans() {
   }, [borrowerFilter]);
 
   const loans = apiLoans.map((l) => {
-    const borrowerName = l.borrowerName || "Unknown Borrower";
+    const borrowerName = l.borrowerName || "Unknown Customer";
     const principal = new Intl.NumberFormat("en-GH", {
       style: "currency",
       currency: "GHS",
@@ -85,10 +85,16 @@ export default function AllLoans() {
           <h1 className="page-title text-2xl sm:text-3xl">All Loans</h1>
           <p className="page-description text-sm sm:text-base">View and manage all loan records.</p>
         </div>
-        <Button variant="outline" className="gap-2 w-full sm:w-auto">
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2 flex-1 sm:flex-none">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button className="gap-2 flex-1 sm:flex-none" onClick={() => navigate("/loans/new")}>
+            <PlusCircle className="h-4 w-4" />
+            New Loan
+          </Button>
+        </div>
       </div>
 
       {/* Active Filter Badge */}
@@ -114,7 +120,7 @@ export default function AllLoans() {
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by loan ID or borrower..."
+            placeholder="Search by loan ID or customer..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -197,7 +203,7 @@ export default function AllLoans() {
             <thead>
               <tr>
                 <th>Loan ID</th>
-                <th>Borrower</th>
+                <th>Customer</th>
                 <th>Principal</th>
                 <th>Start Date</th>
                 <th>Amount Paid</th>

@@ -20,7 +20,7 @@ import type { AddBorrowerRequest } from "../types/loan";
 import { toast } from "sonner";
 
 export default function Borrowers() {
-  usePageTitle("Borrowers");
+  usePageTitle("Customers");
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<AddBorrowerRequest>({
@@ -53,7 +53,7 @@ export default function Borrowers() {
     e.preventDefault();
     try {
       await addBorrower(formData).unwrap();
-      toast.success("Borrower added successfully!");
+      toast.success("Customer added successfully!");
       setOpen(false);
       setFormData({
         firstName: "",
@@ -65,7 +65,7 @@ export default function Borrowers() {
         location: "",
       });
     } catch (error) {
-      toast.error("Failed to add borrower. Please try again.");
+      toast.error("Failed to add customer. Please try again.");
       console.error("Error adding borrower:", error);
     }
   };
@@ -75,14 +75,14 @@ export default function Borrowers() {
       <Layout>
         <div className="page-header flex items-center justify-between">
           <div>
-            <h1 className="page-title">Borrowers</h1>
+            <h1 className="page-title">Customers</h1>
             <p className="page-description">
-              Manage and view all borrower information.
+              Manage and view all customer information.
             </p>
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading borrowers...</p>
+          <p className="text-muted-foreground">Loading customers...</p>
         </div>
       </Layout>
     );
@@ -93,14 +93,14 @@ export default function Borrowers() {
       <Layout>
         <div className="page-header flex items-center justify-between">
           <div>
-            <h1 className="page-title">Borrowers</h1>
+            <h1 className="page-title">Customers</h1>
             <p className="page-description">
-              Manage and view all borrower information.
+              Manage and view all customer information.
             </p>
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
-          <p className="text-destructive">Error loading borrowers. Please try again.</p>
+          <p className="text-destructive">Error loading customers. Please try again.</p>
         </div>
       </Layout>
     );
@@ -110,23 +110,23 @@ export default function Borrowers() {
     <Layout>
       <div className="page-header flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="page-title text-2xl sm:text-3xl">Borrowers</h1>
+          <h1 className="page-title text-2xl sm:text-3xl">Customers</h1>
           <p className="page-description text-sm sm:text-base">
-            Manage and view all borrower information.
+            Manage and view all customer information.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
-              Add Borrower
+              Add Customer
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add New Borrower</DialogTitle>
+              <DialogTitle>Add New Customer</DialogTitle>
               <DialogDescription>
-                Fill in the borrower's information below.
+                Fill in the customer's information below.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
@@ -225,7 +225,7 @@ export default function Borrowers() {
                   disabled={isAdding}
                   className="bg-accent text-accent-foreground hover:bg-accent/90"
                 >
-                  {isAdding ? "Adding..." : "Add Borrower"}
+                  {isAdding ? "Adding..." : "Add Customer"}
                 </Button>
               </DialogFooter>
             </form>
@@ -237,7 +237,7 @@ export default function Borrowers() {
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search borrowers..."
+          placeholder="Search customers..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"

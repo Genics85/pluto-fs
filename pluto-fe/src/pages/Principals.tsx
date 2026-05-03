@@ -17,7 +17,7 @@ import { Plus, UserCog, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Principals() {
-  usePageTitle("Principals");
+  usePageTitle("Investors");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -58,7 +58,7 @@ export default function Principals() {
 
     try {
       await createPrincipal(formData).unwrap();
-      toast.success("Principal created successfully!");
+      toast.success("Investor created successfully!");
       setIsDialogOpen(false);
       setFormData({
         name: "",
@@ -66,7 +66,7 @@ export default function Principals() {
         phone: "",
       });
     } catch (error) {
-      toast.error("Failed to create principal. Please try again.");
+      toast.error("Failed to create investor. Please try again.");
       console.error(error);
     }
   };
@@ -86,39 +86,39 @@ export default function Principals() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
-              Principals
+              Investors
             </h1>
             <p className="mt-1 text-sm sm:text-base text-muted-foreground">
-              Manage loan principals and their contact information
+              Manage investors and their contact information
             </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)} className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
-            Add Principal
+            Add Investor
           </Button>
         </div>
 
         {/* Principals Grid */}
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <p className="text-muted-foreground">Loading principals...</p>
+            <p className="text-muted-foreground">Loading investors...</p>
           </div>
         ) : isError ? (
           <div className="flex items-center justify-center py-16">
-            <p className="text-destructive">Failed to load principals</p>
+            <p className="text-destructive">Failed to load investors</p>
           </div>
         ) : principals.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 rounded-xl border-2 border-dashed border-border bg-muted/50">
             <UserCog className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="font-display text-lg font-semibold text-foreground mb-2">
-              No principals yet
+              No investors yet
             </h3>
             <p className="text-muted-foreground mb-4">
-              Create your first principal to get started
+              Create your first investor to get started
             </p>
             <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
               <Plus className="h-4 w-4" />
-              Add Principal
+              Add Investor
             </Button>
           </div>
         ) : (
@@ -187,9 +187,9 @@ export default function Principals() {
         }}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create Principal</DialogTitle>
+              <DialogTitle>Create Investor</DialogTitle>
               <DialogDescription>
-                Add a new principal to the system
+                Add a new investor to the system
               </DialogDescription>
             </DialogHeader>
 
@@ -248,7 +248,7 @@ export default function Principals() {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isCreating}>
-                  {isCreating ? "Creating..." : "Create Principal"}
+                  {isCreating ? "Creating..." : "Create Investor"}
                 </Button>
               </DialogFooter>
             </form>

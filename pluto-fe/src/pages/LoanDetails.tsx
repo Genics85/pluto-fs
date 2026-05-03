@@ -276,7 +276,7 @@ export default function LoanDetails() {
           <div className="space-y-6">
             <div className="rounded-xl bg-card p-6 shadow-sm ring-1 ring-border">
               <h3 className="font-display text-lg font-semibold text-foreground">
-                Borrower Information
+                Customer Information
               </h3>
               {loanData.borrower ? (
                 <>
@@ -320,14 +320,14 @@ export default function LoanDetails() {
                   </div>
                   <Link to={`/borrowers/${loanData.borrower.id}`} className="mt-6 block">
                     <Button variant="outline" className="w-full">
-                      View Borrower Profile
+                      View Customer Profile
                     </Button>
                   </Link>
                 </>
               ) : (
                 <div className="mt-6">
                   <p className="text-sm text-muted-foreground">
-                    Borrower: {loanData.borrowerName || 'Unknown'}
+                    Customer: {loanData.borrowerName || 'Unknown'}
                   </p>
                 </div>
               )}

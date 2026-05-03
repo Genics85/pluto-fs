@@ -222,7 +222,7 @@ export default function Dashboard() {
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           <div className="stat-card">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="">
                 <p className="text-sm font-medium text-muted-foreground">
                   Total Outstanding
                 </p>
@@ -441,7 +441,7 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-muted/10">
                     <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <span className="text-sm text-muted-foreground">Reserved</span>
+                  <span className="text-sm text-muted-foreground">Principal In Arrears</span>
                 </div>
                 <p className="text-lg font-bold text-foreground">
                   {formatCurrency(totalReserved)}
@@ -621,7 +621,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <p className="font-medium text-foreground">
-                            {loan.borrowerName || "Unknown Borrower"}
+                            {loan.borrowerName || "Unknown Customer"}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             LN-{loan.id} • {formatDate(loan.createdAt)}
@@ -647,7 +647,7 @@ export default function Dashboard() {
           <div>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
-                Recent Borrowers
+                Recent Customers
               </h2>
               <Link
                 to="/borrowers"
@@ -659,7 +659,7 @@ export default function Dashboard() {
             <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
               {recentBorrowers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No borrowers yet
+                  No customers yet
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">

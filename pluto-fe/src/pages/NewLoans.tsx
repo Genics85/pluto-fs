@@ -58,7 +58,7 @@ export default function NewLoan() {
 
     // Validation
     if (!loanDetails.borrowerId) {
-      toast.error("Please select a borrower");
+      toast.error("Please select a customer");
       return;
     }
     if (!loanDetails.principalAmount || loanDetails.principalAmount <= 0) {
@@ -154,7 +154,7 @@ export default function NewLoan() {
             </h2>
             <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label htmlFor="borrower">Borrower</Label>
+                <Label htmlFor="borrower">Customer</Label>
                 <Select
                   value={
                     loanDetails.borrowerId ? String(loanDetails.borrowerId) : ""
@@ -164,20 +164,20 @@ export default function NewLoan() {
                   }
                 >
                   <SelectTrigger id="borrower" className="mt-2">
-                    <SelectValue placeholder="Select a borrower" />
+                    <SelectValue placeholder="Select a customer" />
                   </SelectTrigger>
                   <SelectContent>
                     {borrowersLoading ? (
                       <SelectItem value="loading" disabled>
-                        Loading borrowers...
+                        Loading customers...
                       </SelectItem>
                     ) : borrowersError ? (
                       <SelectItem value="error" disabled>
-                        Failed to load borrowers {borrowersError}
+                        Failed to load customers {borrowersError}
                       </SelectItem>
                     ) : borrowers.length === 0 ? (
                       <SelectItem value="no-borrowers" disabled>
-                        No borrowers found. Please add a borrower first.
+                        No customers found. Please add a customer first.
                       </SelectItem>
                     ) : (
                       borrowers.map((borrower) => (
@@ -216,9 +216,10 @@ export default function NewLoan() {
                   id="interest"
                   type="number"
                   min="0"
+                
                   max="100"
                   step="0.25"
-                  placeholder="8.5"
+                  placeholder="20"
                   value={loanDetails.interestRate || ""}
                   onChange={(e) =>
                     updateFields({ interestRate: Number(e.target.value) })
@@ -237,7 +238,7 @@ export default function NewLoan() {
                   }
                 >
                   <SelectTrigger id="term" className="mt-2">
-                    <SelectValue placeholder="Select term" />
+                    <SelectValue defaultValue={12} placeholder="Select term" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="9">9 weeks</SelectItem>
@@ -251,7 +252,7 @@ export default function NewLoan() {
               </div>
 
               <div>
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">Repayment Start Date</Label>
                 <Input
                   id="startDate"
                   type="date"

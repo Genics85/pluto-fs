@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   CreditCard,
-  PlusCircle,
   Settings,
   TrendingUp,
   Wallet2,
@@ -16,9 +15,8 @@ import { cn } from '../../lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Borrowers', href: '/borrowers', icon: Users },
-  { name: 'All Loans', href: '/loans', icon: CreditCard },
-  { name: 'New Loan', href: '/loans/new', icon: PlusCircle },
+  { name: 'Customers', href: '/borrowers', icon: Users },
+  { name: 'Loans', href: '/loans', icon: CreditCard },
   { name: 'Accounts', href: '/accounts', icon: Building2 },
   { name: 'Investors', href: '/principals', icon: UserCog },
   { name: 'Funds', href: '/funds', icon: Wallet2 }

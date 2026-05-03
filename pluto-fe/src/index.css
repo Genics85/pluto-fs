@@ -219,3 +219,7 @@
     @apply text-muted-foreground mt-1;
   }
 }
+
+.red{
+  border: 2px red solid;
+}

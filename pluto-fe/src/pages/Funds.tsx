@@ -228,7 +228,7 @@ export default function Funds() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                Reserved
+                Principal In Arrears
               </p>
               <p className="mt-2 text-2xl sm:text-3xl font-semibold text-foreground">
                 {formatCurrency(totalReserved)}
@@ -340,13 +340,13 @@ export default function Funds() {
                         {getTransactionIcon(tx.type)}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{tx.type}</p>
+                        <p className="font-medium text-foreground">{tx.type == "ALLOCATION" ? "DISBURSEMENT":tx.type}</p>
                         <p className="text-sm text-muted-foreground line-clamp-1">
                           {tx.note}
                         </p>
                         {tx.principal && (
                           <p className="text-xs text-muted-foreground">
-                            Principal: {tx.principal.name}
+                            Investor: {tx.principal.name}
                           </p>
                         )}
                       </div>
