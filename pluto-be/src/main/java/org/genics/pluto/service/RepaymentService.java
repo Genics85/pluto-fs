@@ -6,7 +6,6 @@ import org.genics.pluto.dto.repayment.UpdateRepaymentRequest;
 import org.genics.pluto.enums.RepaymentStatus;
 import org.genics.pluto.model.Loan;
 import org.genics.pluto.model.Repayment;
-import org.genics.pluto.repository.LoanRepository;
 import org.genics.pluto.repository.RepaymentRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +20,6 @@ public class RepaymentService {
 
     private final RepaymentRepository repaymentRepository;
     private final FundingAccountService fundingAccountService;
-    private final LoanRepository loanRepository;
 
     public List<Repayment> findAll() {
         return repaymentRepository.findAll();

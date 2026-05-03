@@ -36,7 +36,7 @@ services:
     image: ${GHCR_IMAGE_PREFIX:-local}/pluto-fe:latest
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:8080"
     depends_on:
       - pluto-be
     networks:

@@ -4,14 +4,14 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Builder.Default;
+
 import org.genics.pluto.enums.InterestType;
 import org.genics.pluto.enums.LoanStatus;
-import org.genics.pluto.enums.RepaymentStatus;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -60,6 +60,7 @@ public class Loan {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal outstandingBalance;
 
+    @Default
     @Enumerated(EnumType.STRING)
     private LoanStatus status = LoanStatus.ACTIVE;
 
