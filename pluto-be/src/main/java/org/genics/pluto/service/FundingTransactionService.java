@@ -3,6 +3,7 @@ package org.genics.pluto.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.funding.FundingTransactionRequest;
+import org.genics.pluto.dto.funding.FundingTransactionResponse;
 import org.genics.pluto.model.FundingAccount;
 import org.genics.pluto.model.FundingTransaction;
 import org.genics.pluto.repository.FundingAccountRepository;
@@ -22,7 +23,7 @@ public class FundingTransactionService {
     private final FundingAccountRepository accountRepo;
     private final PrincipalRepository principalRepo;
 
-    public FundingTransaction create(FundingTransactionRequest req) {
+    public FundingTransactionResponse create(FundingTransactionRequest req) {
 
         FundingAccount acc = accountRepo.findById(req.getAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("Funding account not found"));
@@ -37,25 +38,34 @@ public class FundingTransactionService {
             principalRepo.findById(req.getPrincipalId()).ifPresent(txBuilder::principal);
         }
 
-        FundingTransaction tx = txBuilder.build();
+        FundingTransaction tx = txRepo.save(txBuilder.build());
 
-        var transaction = txRepo.save(tx);
-        var txType = req.getType();
-        var amount = req.getAmount();
-        var accountId = req.getAccountId();
-
-        switch (txType) {
-            case DEPOSIT ->
-                    accountService.deposit( accountId, amount );
-            case WITHDRAWAL ->
-                    accountService.withdraw( accountId,amount );
+        switch (req.getType()) {
+            case DEPOSIT -> accountService.deposit(req.getAccountId(), req.getAmount());
+            case WITHDRAWAL -> accountService.withdraw(req.getAccountId(), req.getAmount());
+            default -> { /* ALLOCATION, RELEASE, ADJUSTMENT — no balance mutation */ }
         }
 
-        return transaction;
+        return toResponse(tx);
     }
 
-    public List<FundingTransaction> findByAccountId(Long accountId) {
-        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId);
+    public List<FundingTransactionResponse> findByAccountId(Long accountId) {
+        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private FundingTransactionResponse toResponse(FundingTransaction tx) {
+        return FundingTransactionResponse.builder()
+                .id(tx.getId())
+                .accountId(tx.getFundingAccount().getId())
+                .amount(tx.getAmount())
+                .type(tx.getType())
+                .note(tx.getNote())
+                .principalId(tx.getPrincipal() != null ? tx.getPrincipal().getId() : null)
+                .createdAt(tx.getCreatedAt())
+                .build();
     }
 
 }

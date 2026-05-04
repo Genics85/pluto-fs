@@ -22,12 +22,17 @@ export default function NewLoan() {
   usePageTitle("Create New Loan");
   const navigate = useNavigate();
 
+  const nextSaturday = new Date();
+  const daysUntilSaturday = (6 - nextSaturday.getDay() + 7) % 7 || 7;
+  nextSaturday.setDate(nextSaturday.getDate() + daysUntilSaturday);
+  const defaultStartDate = nextSaturday.toISOString().split("T")[0];
+
   const [loanDetails, setLoanDetails] = useState<LoanAddRequest>({
     borrowerId: 0,
     principalAmount: 0,
-    interestRate: 0,
-    durationWeeks: 0,
-    startDate: "",
+    interestRate: 20,
+    durationWeeks: 12,
+    startDate: defaultStartDate,
     totalPayable: 0,
   });
 
@@ -259,6 +264,7 @@ export default function NewLoan() {
                   value={loanDetails.startDate}
                   onChange={(e) => updateFields({ startDate: e.target.value })}
                   className="mt-2"
+                  min={defaultStartDate}
                   required
                 />
               </div>

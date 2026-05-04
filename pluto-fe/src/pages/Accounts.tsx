@@ -176,7 +176,7 @@ export default function Accounts() {
                     <div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <TrendingDown className="h-3 w-3" />
-                        Reserved
+                        Disbursed
                       </div>
                       <p className="mt-1 font-semibold text-muted-foreground">
                         {formatCurrency(account.reservedBalance, account.currency)}

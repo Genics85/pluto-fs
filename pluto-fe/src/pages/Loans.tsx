@@ -205,7 +205,7 @@ export default function AllLoans() {
                 <th>Loan ID</th>
                 <th>Customer</th>
                 <th>Principal</th>
-                <th>Start Date</th>
+                <th>Repayment Start Date</th>
                 <th>Amount Paid</th>
                 <th>Status</th>
                 <th>Actions</th>

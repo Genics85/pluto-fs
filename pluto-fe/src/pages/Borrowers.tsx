@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Plus, MoreHorizontal, Mail, Phone } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, Plus, MoreHorizontal, Mail, Phone, Pencil, MapPin, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -15,27 +15,70 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../components/ui/dialog";
-import { useGetBorrowersQuery, useAddBorrowerMutation } from "../services/borrowerApi";
-import type { AddBorrowerRequest } from "../types/loan";
+import { useGetBorrowersQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } from "../services/borrowerApi";
+import type { AddBorrowerRequest, Borrower } from "../types/loan";
 import { toast } from "sonner";
+
+const emptyForm: AddBorrowerRequest = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  whatsapp: "",
+  ghanaCard: "",
+  location: "",
+};
+
+function BorrowerMenu({ onEdit }: { onEdit: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        className="p-2 hover:bg-muted rounded-lg transition-colors"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-9 z-10 min-w-[120px] bg-popover border border-border rounded-lg shadow-md py-1">
+          <button
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-muted transition-colors"
+            onClick={() => { setOpen(false); onEdit(); }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Edit
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Borrowers() {
   usePageTitle("Customers");
   const [searchTerm, setSearchTerm] = useState("");
-  const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState<AddBorrowerRequest>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    whatsapp: "",
-    ghanaCard: "",
-    location: "",
-  });
+  const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Borrower | null>(null);
+  const [formData, setFormData] = useState<AddBorrowerRequest>(emptyForm);
+  const [editFormData, setEditFormData] = useState<AddBorrowerRequest>(emptyForm);
 
   const navigate = useNavigate();
   const { data: borrowers = [], isLoading, isError } = useGetBorrowersQuery();
   const [addBorrower, { isLoading: isAdding }] = useAddBorrowerMutation();
+  const [updateBorrower, { isLoading: isUpdating }] = useUpdateBorrowerMutation();
 
   const filteredBorrowers = borrowers.filter((borrower) => {
     const fullName = `${borrower.firstName} ${borrower.lastName}`.toLowerCase();
@@ -44,9 +87,18 @@ export default function Borrowers() {
     return fullName.includes(search) || email.includes(search);
   });
 
+  const phoneFields = ["phone", "whatsapp"];
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const sanitized = phoneFields.includes(name) ? value.replace(/\D/g, "").slice(0, 10) : value;
+    setFormData((prev) => ({ ...prev, [name]: sanitized }));
+  };
+
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const sanitized = phoneFields.includes(name) ? value.replace(/\D/g, "").slice(0, 10) : value;
+    setEditFormData((prev) => ({ ...prev, [name]: sanitized }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,19 +106,37 @@ export default function Borrowers() {
     try {
       await addBorrower(formData).unwrap();
       toast.success("Customer added successfully!");
-      setOpen(false);
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        whatsapp: "",
-        ghanaCard: "",
-        location: "",
-      });
-    } catch (error) {
+      setAddOpen(false);
+      setFormData(emptyForm);
+    } catch {
       toast.error("Failed to add customer. Please try again.");
-      console.error("Error adding borrower:", error);
+    }
+  };
+
+  const openEdit = (borrower: Borrower) => {
+    setEditTarget(borrower);
+    setEditFormData({
+      firstName: borrower.firstName,
+      lastName: borrower.lastName,
+      email: borrower.email,
+      phone: borrower.phone,
+      whatsapp: borrower.whatsapp,
+      ghanaCard: borrower.ghanaCard,
+      location: borrower.location,
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    try {
+      await updateBorrower({ id: editTarget.id, ...editFormData }).unwrap();
+      toast.success("Customer updated successfully!");
+      setEditOpen(false);
+      setEditTarget(null);
+    } catch {
+      toast.error("Failed to update customer. Please try again.");
     }
   };
 
@@ -115,7 +185,7 @@ export default function Borrowers() {
             Manage and view all customer information.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
@@ -174,7 +244,8 @@ export default function Borrowers() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
-                    placeholder="+233 XX XXX XXXX"
+                    maxLength={10}
+                    placeholder="0XX XXX XXXX"
                   />
                 </div>
                 <div className="space-y-2">
@@ -186,7 +257,8 @@ export default function Borrowers() {
                     value={formData.whatsapp}
                     onChange={handleInputChange}
                     required
-                    placeholder="+233 XX XXX XXXX"
+                    maxLength={10}
+                    placeholder="0XX XXX XXXX"
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,7 +288,7 @@ export default function Borrowers() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setOpen(false)}
+                  onClick={() => setAddOpen(false)}
                 >
                   Cancel
                 </Button>
@@ -232,6 +304,120 @@ export default function Borrowers() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription>
+              Update the customer's information below.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-firstName">First Name *</Label>
+                <Input
+                  id="edit-firstName"
+                  name="firstName"
+                  value={editFormData.firstName}
+                  onChange={handleEditInputChange}
+                  required
+                  placeholder="John"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-lastName">Last Name *</Label>
+                <Input
+                  id="edit-lastName"
+                  name="lastName"
+                  value={editFormData.lastName}
+                  onChange={handleEditInputChange}
+                  required
+                  placeholder="Doe"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input
+                  id="edit-email"
+                  name="email"
+                  type="email"
+                  value={editFormData.email}
+                  onChange={handleEditInputChange}
+                  required
+                  placeholder="john.doe@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone *</Label>
+                <Input
+                  id="edit-phone"
+                  name="phone"
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={handleEditInputChange}
+                  required
+                  maxLength={10}
+                  placeholder="0XX XXX XXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-whatsapp">WhatsApp *</Label>
+                <Input
+                  id="edit-whatsapp"
+                  name="whatsapp"
+                  type="tel"
+                  value={editFormData.whatsapp}
+                  onChange={handleEditInputChange}
+                  required
+                  maxLength={10}
+                  placeholder="0XX XXX XXXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-ghanaCard">Ghana Card *</Label>
+                <Input
+                  id="edit-ghanaCard"
+                  name="ghanaCard"
+                  value={editFormData.ghanaCard}
+                  onChange={handleEditInputChange}
+                  required
+                  placeholder="GHA-XXXXXXXXX-X"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="edit-location">Location *</Label>
+                <Input
+                  id="edit-location"
+                  name="location"
+                  value={editFormData.location}
+                  onChange={handleEditInputChange}
+                  required
+                  placeholder="City, Region"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isUpdating}
+                className="bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {isUpdating ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Search */}
       <div className="relative mb-6">
@@ -268,19 +454,25 @@ export default function Borrowers() {
                   </span>
                 </div>
               </div>
-              <button className="p-2 hover:bg-muted rounded-lg transition-colors">
-                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <BorrowerMenu onEdit={() => openEdit(borrower)} />
             </div>
 
             <div className="space-y-2 mb-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
+                <Mail className="h-4 w-4 shrink-0" />
                 {borrower.email || "N/A"}
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4" />
+                <Phone className="h-4 w-4 shrink-0" />
                 {borrower.phone || "N/A"}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 shrink-0" />
+                {borrower.location || "N/A"}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CreditCard className="h-4 w-4 shrink-0" />
+                {borrower.ghanaCard || "N/A"}
               </div>
             </div>
 

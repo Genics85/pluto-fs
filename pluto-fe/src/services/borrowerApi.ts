@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { baseUrl } from "./commons";
-import type { Borrower, AddBorrowerRequest } from "../types/loan";
+import type { Borrower, AddBorrowerRequest, UpdateBorrowerRequest } from "../types/loan";
 
 export const borrowerApi = createApi({
   reducerPath: "borrowerApi",
@@ -29,7 +29,19 @@ export const borrowerApi = createApi({
       }),
       invalidatesTags: [{ type: "Borrowers", id: "LIST" }],
     }),
+
+    updateBorrower: build.mutation<Borrower, UpdateBorrowerRequest>({
+      query: ({ id, ...body }) => ({
+        url: `/borrowers/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Borrowers", id },
+        { type: "Borrowers", id: "LIST" },
+      ],
+    }),
   }),
 });
 
-export const { useGetBorrowersQuery, useAddBorrowerMutation } = borrowerApi;
+export const { useGetBorrowersQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } = borrowerApi;

@@ -340,7 +340,7 @@ export default function Funds() {
                         {getTransactionIcon(tx.type)}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{tx.type == "ALLOCATION" ? "DISBURSEMENT":tx.type}</p>
+                        <p className="font-medium text-foreground">{tx.type === "ALLOCATION" ? "DISBURSEMENT" : tx.type === "RELEASE" ? "REPAYMENT" : tx.type}</p>
                         <p className="text-sm text-muted-foreground line-clamp-1">
                           {tx.note}
                         </p>
@@ -354,7 +354,7 @@ export default function Funds() {
                     <div className="text-right">
                       <p className={`font-semibold ${getTransactionColor(tx.type)}`}>
                         {(tx.type === "DEPOSIT" || tx.type === "RELEASE" ? "+" : "-")}
-                        {formatCurrency(tx.amount, tx.fundingAccount.currency)}
+                        {formatCurrency(tx.amount, "GHS")}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(tx.createdAt)}

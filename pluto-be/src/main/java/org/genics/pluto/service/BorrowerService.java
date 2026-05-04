@@ -3,6 +3,7 @@ package org.genics.pluto.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.borrower.BorrowerAddRequest;
+import org.genics.pluto.dto.borrower.BorrowerUpdateRequest;
 import org.genics.pluto.model.Borrower;
 import org.genics.pluto.repository.BorrowerRepository;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,19 @@ public class BorrowerService {
                 .build();
 
         return borrowerRepository.save(b);
+    }
+
+    public Optional<Borrower> update(Long id, BorrowerUpdateRequest req) {
+        return borrowerRepository.findById(id).map(b -> {
+            b.setFirstName(req.getFirstName());
+            b.setLastName(req.getLastName());
+            b.setEmail(req.getEmail());
+            b.setPhone(req.getPhone());
+            b.setWhatsapp(req.getWhatsapp());
+            b.setGhanaCard(req.getGhanaCard());
+            b.setLocation(req.getLocation());
+            return borrowerRepository.save(b);
+        });
     }
 
 }

@@ -20,10 +20,6 @@ import { toast } from 'sonner';
 import { type Repayment } from '../types/loan';
 import {
   ArrowLeft,
-  User,
-  Mail,
-  Phone,
-  MapPin,
   Calendar,
   Percent,
   DollarSign,
@@ -153,12 +149,17 @@ export default function LoanDetails() {
         <div className="flex flex-col gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">
+              <h1 className="font-display font-bold text-foreground">
                 Loan #{loanData.id}
               </h1>
               <StatusBadge status={loanData.status} />
             </div>
-            <p className="mt-1 text-sm sm:text-base text-muted-foreground">
+            <p className="mt-1 font-display text-2xl sm:text-3xl font-bold text-foreground">
+              {loanData.borrower
+                ? `${loanData.borrower.firstName} ${loanData.borrower.lastName}`
+                : loanData.borrowerName || 'Unknown Customer'}
+            </p>
+            <p className="mt-0.5 text-sm sm:text-base text-muted-foreground">
               Started on {formatDate(loanData.startDate)}
             </p>
           </div>
@@ -184,10 +185,8 @@ export default function LoanDetails() {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Loan Summary */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Main Content */}
+        <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl bg-card p-3 sm:p-4 shadow-sm ring-1 ring-border">
@@ -270,69 +269,6 @@ export default function LoanDetails() {
                 />
               )}
             </div>
-          </div>
-
-          {/* Borrower Info Sidebar */}
-          <div className="space-y-6">
-            <div className="rounded-xl bg-card p-6 shadow-sm ring-1 ring-border">
-              <h3 className="font-display text-lg font-semibold text-foreground">
-                Customer Information
-              </h3>
-              {loanData.borrower ? (
-                <>
-                  <div className="mt-6 space-y-4">
-                    <div className="flex items-start gap-3">
-                      <User className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Name</p>
-                        <p className="font-medium text-foreground">
-                          {loanData.borrower.firstName} {loanData.borrower.lastName}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Mail className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Email</p>
-                        <p className="font-medium text-foreground">
-                          {loanData.borrower.email}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Phone className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Phone</p>
-                        <p className="font-medium text-foreground">
-                          {loanData.borrower.phone}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Location</p>
-                        <p className="font-medium text-foreground">
-                          {loanData.borrower.location}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <Link to={`/borrowers/${loanData.borrower.id}`} className="mt-6 block">
-                    <Button variant="outline" className="w-full">
-                      View Customer Profile
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <div className="mt-6">
-                  <p className="text-sm text-muted-foreground">
-                    Customer: {loanData.borrowerName || 'Unknown'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Mark Repayment as Paid Dialog */}

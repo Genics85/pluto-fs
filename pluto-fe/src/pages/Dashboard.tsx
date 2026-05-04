@@ -219,7 +219,7 @@ export default function Dashboard() {
         </div>
 
         {/* Key Metrics Row */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-4">
           <div className="stat-card">
             <div className="flex items-start justify-between">
               <div className="">

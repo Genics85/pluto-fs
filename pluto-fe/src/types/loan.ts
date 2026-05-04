@@ -22,6 +22,17 @@ export interface AddBorrowerRequest {
   location: string
 }
 
+export interface UpdateBorrowerRequest {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  whatsapp: string
+  ghanaCard: string
+  location: string
+}
+
 export interface Loan {
   id: number
   principalAmount: number

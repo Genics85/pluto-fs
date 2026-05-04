@@ -228,12 +228,13 @@ export default function Principals() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="e.g., +233 123 456 789"
+                  placeholder="0XX XXX XXXX"
                   value={formData.phone}
                   onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
+                    setFormData({ ...formData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
                   }
                   className="mt-2"
+                  maxLength={10}
                   required
                 />
               </div>
