@@ -115,7 +115,7 @@ public class FundingAccountService {
         return acc;
     }
 
-    public FundingAccount releaseFromLoan(Long accountId, BigDecimal totalAmount, Long loanId) {
+    public FundingAccount releaseFromLoan(Long accountId, BigDecimal totalAmount, Long loanId, String customerName) {
         FundingAccount acc = accountRepo.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("Funding account not found"));
 
@@ -137,7 +137,7 @@ public class FundingAccountService {
                 .fundingAccount(acc)
                 .amount(totalAmount)
                 .type(FundingTransactionType.RELEASE)
-                .note("Released from loan " + loanId)
+                .note("Loan repayment by " + customerName + " from loan " + loanId)
                 .build());
 
         return acc;

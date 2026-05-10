@@ -59,7 +59,7 @@ public class RepaymentService {
             if (newStatus != null) {
                 r.setRepaymentStatus(newStatus);
                 if(newStatus.equals(RepaymentStatus.PAID)){
-                    fundingAccountService.releaseFromLoan(1L,r.getAmountPaid(),r.getLoan().getId());
+                    fundingAccountService.releaseFromLoan(1L,r.getAmountPaid(),r.getLoan().getId(), r.getLoan().getBorrowerName());
                     Loan loan = r.getLoan();
                     loan.setOutstandingBalance(loan.getOutstandingBalance().subtract(r.getAmountPaid()));
                 }
