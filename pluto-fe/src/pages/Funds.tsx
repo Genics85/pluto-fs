@@ -302,7 +302,7 @@ export default function Funds() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Reserved</p>
+                      <p className="text-xs text-muted-foreground">Principal In Arrears</p>
                       <p className="font-semibold text-muted-foreground">
                         {formatCurrency(account.reservedBalance, account.currency)}
                       </p>

@@ -61,12 +61,12 @@ public class FundingAccountService {
         acc.setAvailableBalance(acc.getAvailableBalance().add(amount));
         accountRepo.save(acc);
 
-        txRepo.save(FundingTransaction.builder()
-                .fundingAccount(acc)
-                .amount(amount)
-                .type(FundingTransactionType.DEPOSIT)
-                .note("Deposit")
-                .build());
+        // txRepo.save(FundingTransaction.builder()
+        //         .fundingAccount(acc)
+        //         .amount(amount)
+        //         .type(FundingTransactionType.DEPOSIT)
+        //         .note("Deposit")
+        //         .build());
 
         return acc;
     }
@@ -83,12 +83,12 @@ public class FundingAccountService {
         acc.setAvailableBalance(acc.getAvailableBalance().subtract(amount));
         accountRepo.save(acc);
 
-        txRepo.save(FundingTransaction.builder()
-                .fundingAccount(acc)
-                .amount(amount.negate())
-                .type(FundingTransactionType.WITHDRAWAL)
-                .note("Withdrawal")
-                .build());
+        // txRepo.save(FundingTransaction.builder()
+        //         .fundingAccount(acc)
+        //         .amount(amount.negate())
+        //         .type(FundingTransactionType.WITHDRAWAL)
+        //         .note("Withdrawal")
+        //         .build());
 
         return acc;
     }
