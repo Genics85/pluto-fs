@@ -28,6 +28,7 @@ import {
 } from "../components/ui/select";
 import { Label } from "../components/ui/label";
 import { useGetFundingAccountsQuery } from "../services/accountApi";
+import { useGetLoansQuery } from "../services/loansApi";
 import { useGetTransactionsByAccountQuery, useCreateFundingTransactionMutation, type TransactionType } from "../services/transactionsApi";
 import { useGetPrincipalsQuery } from "../services/principalsApi";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ export default function Funds() {
   });
 
   const { data: accounts = [], isLoading: accountsLoading } = useGetFundingAccountsQuery();
+  const { data: loans = [] } = useGetLoansQuery();
   const { data: principals = [] } = useGetPrincipalsQuery();
   const { data: transactions = [], isLoading: transactionsLoading } = useGetTransactionsByAccountQuery(
     selectedAccountId || (accounts[0]?.id ?? 0),
@@ -167,9 +169,11 @@ export default function Funds() {
     }
   };
 
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.totalBalance, 0);
   const totalAvailable = accounts.reduce((sum, acc) => sum + acc.availableBalance, 0);
   const totalReserved = accounts.reduce((sum, acc) => sum + acc.reservedBalance, 0);
+  const totalOutstanding = loans.reduce((sum, loan) => sum + (loan.outstandingBalance || 0), 0);
+  const totalBalance = totalOutstanding + totalAvailable;
+  const interestReceivable = totalOutstanding - totalReserved;
 
   const filteredAccounts = accounts.filter((account) =>
     account.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -191,7 +195,7 @@ export default function Funds() {
       </div>
 
       {/* Overview Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
         <div className="stat-card">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -236,6 +240,38 @@ export default function Funds() {
             </div>
             <div className="p-2 sm:p-3 rounded-xl bg-muted/10">
               <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total Outstanding
+              </p>
+              <p className="mt-2 text-2xl sm:text-3xl font-semibold text-blue-500">
+                {formatCurrency(totalOutstanding)}
+              </p>
+            </div>
+            <div className="p-2 sm:p-3 rounded-xl bg-blue-500/10">
+              <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                Interest Receivable
+              </p>
+              <p className="mt-2 text-2xl sm:text-3xl font-semibold text-amber-500">
+                {formatCurrency(interestReceivable)}
+              </p>
+            </div>
+            <div className="p-2 sm:p-3 rounded-xl bg-amber-500/10">
+              <ArrowUpRight className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />
             </div>
           </div>
         </div>

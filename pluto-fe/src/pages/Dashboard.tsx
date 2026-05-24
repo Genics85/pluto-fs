@@ -3,7 +3,6 @@ import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import {
   DollarSign,
-  AlertTriangle,
   CreditCard,
   Users,
   Wallet,
@@ -30,6 +29,7 @@ import {
   BarChart,
   Bar,
   Cell,
+  LabelList,
 } from "recharts";
 
 export default function Dashboard() {
@@ -52,49 +52,40 @@ export default function Dashboard() {
 
   const totalOutstanding = loans.reduce(
     (sum, loan) => sum + (loan.outstandingBalance || 0),
-    0
+    0,
   );
- 
+
   // Calculate interest earned only from PAID loans
   const totalInterestEarned = paidLoans.reduce(
     (sum, loan) =>
       sum + ((loan.totalPayable || 0) - (loan.principalAmount || 0)),
-    0
+    0,
   );
-
-  // Calculate overdue payments
-  const overduePayments = loans.reduce((count, loan) => {
-    const overdueCount =
-      loan.repayments?.filter((r) => r.repaymentStatus === "OVERDUE").length ||
-      0;
-    return count + overdueCount;
-  }, 0);
 
   // Calculate expected weekly repayments from active loans
   const expectedWeeklyRepayments = activeLoans.reduce((sum, loan) => {
-    const weeklyPayment = loan.durationWeeks > 0 ? loan.totalPayable / loan.durationWeeks : 0;
+    const weeklyPayment =
+      loan.durationWeeks > 0 ? loan.totalPayable / loan.durationWeeks : 0;
     return sum + weeklyPayment;
   }, 0);
 
   // Calculate funding statistics
-  const totalFundsBalance = accounts.reduce(
-    (sum, acc) => sum + acc.totalBalance,
-    0
-  );
   const totalAvailable = accounts.reduce(
     (sum, acc) => sum + acc.availableBalance,
-    0
+    0,
   );
   const totalReserved = accounts.reduce(
     (sum, acc) => sum + acc.reservedBalance,
-    0
+    0,
   );
+  const totalFundsBalance = totalOutstanding + totalAvailable;
+  const interestReceivable = totalOutstanding - totalReserved;
 
   // Get recent loans (last 5)
   const recentLoans = [...loans]
     .sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 5);
 
@@ -102,7 +93,7 @@ export default function Dashboard() {
   const recentBorrowers = [...borrowers]
     .sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 5);
 
@@ -119,7 +110,7 @@ export default function Dashboard() {
     loans.forEach((loan) => {
       const date = new Date(loan.startDate);
       const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
+        date.getMonth() + 1,
       ).padStart(2, "0")}`;
       const monthLabel = new Intl.DateTimeFormat("en-US", {
         month: "2-digit",
@@ -154,8 +145,37 @@ export default function Dashboard() {
         color: "hsl(0, 84%, 60%)",
       },
     ],
-    [activeLoans.length, paidLoans.length, defaultedLoans.length]
+    [activeLoans.length, paidLoans.length, defaultedLoans.length],
   );
+
+  // Get repayments with payment dates in the current week (Saturday to Friday)
+  const repaymentsThisWeek = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const daysToSaturday = (now.getDay() + 1) % 7;
+    startOfWeek.setDate(now.getDate() - daysToSaturday);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+    return loans
+      .flatMap((loan) =>
+        (loan.repayments || [])
+          .filter((r) => {
+            const date = new Date(r.paymentDate);
+            return date >= startOfWeek && date < endOfWeek;
+          })
+          .map((r) => ({
+            ...r,
+            borrowerName: loan.borrowerName,
+            loanId: loan.id,
+          })),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime(),
+      );
+  }, [loans]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-GH", {
@@ -220,6 +240,29 @@ export default function Dashboard() {
 
         {/* Key Metrics Row */}
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-4">
+          
+          <div className="stat-card">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Available Balance
+                </p>
+                <p className="mt-2 text-2xl font-bold text-violet-500">
+                  {formatCurrency(totalAvailable)}
+                </p>
+              </div>
+              <div className="p-2 rounded-lg bg-violet-500/10">
+                <Wallet className="h-5 w-5 text-violet-500" />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">
+                Across {accounts.length} funding account
+                {accounts.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
+
           <div className="stat-card">
             <div className="flex items-start justify-between">
               <div className="">
@@ -282,129 +325,77 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-
-          <div className="stat-card">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Overdue Payments
-                </p>
-                <p
-                  className={`mt-2 text-2xl font-bold ${
-                    overduePayments > 0
-                      ? "text-destructive"
-                      : "text-foreground"
-                  }`}
-                >
-                  {overduePayments}
-                </p>
-              </div>
-              <div
-                className={`p-2 rounded-lg ${
-                  overduePayments > 0 ? "bg-destructive/10" : "bg-muted/10"
-                }`}
-              >
-                <AlertTriangle
-                  className={`h-5 w-5 ${
-                    overduePayments > 0
-                      ? "text-destructive"
-                      : "text-muted-foreground"
-                  }`}
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">
-                Requires attention
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Loan Stats & Funding Overview Row */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Loan Status Cards */}
+          {/* Repayments This Week */}
           <div className="lg:col-span-2">
-            <h2 className="text-sm font-medium text-muted-foreground mb-4">
-              Loan Status
-            </h2>
-            <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-              <div
-                className="stat-card cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
-                onClick={() => navigate("/loans")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <CreditCard className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {loans.length}
-                    </p>
-                  </div>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                Repayments This Week
+              </h2>
+              <span className="text-xs text-muted-foreground">
+                {repaymentsThisWeek.length} repayment
+                {repaymentsThisWeek.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden max-h-[220px] overflow-y-auto">
+              {repaymentsThisWeek.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No repayments scheduled this week
                 </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-success/10">
-                    <Clock className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Active</p>
-                    <p className="text-2xl font-bold text-success">
-                      {activeLoans.length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Paid</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {paidLoans.length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-lg ${
-                      defaultedLoans.length > 0
-                        ? "bg-destructive/10"
-                        : "bg-muted/10"
-                    }`}
-                  >
-                    <XCircle
-                      className={`h-5 w-5 ${
-                        defaultedLoans.length > 0
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                      }`}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Defaulted</p>
-                    <p
-                      className={`text-2xl font-bold ${
-                        defaultedLoans.length > 0
-                          ? "text-destructive"
-                          : "text-foreground"
-                      }`}
+              ) : (
+                <div className="divide-y divide-border/50">
+                  {repaymentsThisWeek.map((repayment) => (
+                    <div
+                      key={repayment.id}
+                      className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => navigate(`/loans/${repayment.loanId}`)}
                     >
-                      {defaultedLoans.length}
-                    </p>
-                  </div>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`p-2 rounded-lg ${
+                            repayment.repaymentStatus === "PAID"
+                              ? "bg-success/10"
+                              : repayment.repaymentStatus === "OVERDUE"
+                                ? "bg-destructive/10"
+                                : "bg-blue-500/10"
+                          }`}
+                        >
+                          {repayment.repaymentStatus === "PAID" ? (
+                            <CheckCircle2 className="h-4 w-4 text-success" />
+                          ) : repayment.repaymentStatus === "OVERDUE" ? (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            {repayment.borrowerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(repayment.paymentDate)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-foreground">
+                          {formatCurrency(repayment.amountPaid)}
+                        </p>
+                        <span
+                          className={getStatusBadge(
+                            repayment.repaymentStatus.toLowerCase(),
+                          )}
+                        >
+                          {repayment.repaymentStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -419,7 +410,9 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-primary/10">
                     <Wallet className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="text-sm text-muted-foreground">Total Balance</span>
+                  <span className="text-sm text-muted-foreground">
+                    Total Balance
+                  </span>
                 </div>
                 <p className="text-lg font-bold text-foreground">
                   {formatCurrency(totalFundsBalance)}
@@ -430,7 +423,9 @@ export default function Dashboard() {
                   <div className="p-2 rounded-lg bg-success/10">
                     <ArrowDownRight className="h-5 w-5 text-success" />
                   </div>
-                  <span className="text-sm text-muted-foreground">Available</span>
+                  <span className="text-sm text-muted-foreground">
+                    Available
+                  </span>
                 </div>
                 <p className="text-lg font-bold text-success">
                   {formatCurrency(totalAvailable)}
@@ -438,13 +433,41 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/10">
+                    <DollarSign className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    Total Outstanding
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-blue-500">
+                  {formatCurrency(totalOutstanding)}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted/10">
                     <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <span className="text-sm text-muted-foreground">Principal In Arrears</span>
+                  <span className="text-sm text-muted-foreground">
+                    Principal In Arrears
+                  </span>
                 </div>
                 <p className="text-lg font-bold text-foreground">
                   {formatCurrency(totalReserved)}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <ArrowUpRight className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    Interest Receivable
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-amber-500">
+                  {formatCurrency(interestReceivable)}
                 </p>
               </div>
             </div>
@@ -536,7 +559,7 @@ export default function Dashboard() {
           {/* Loan Status Distribution */}
           <div className="bg-card rounded-xl border border-border/50 shadow-sm p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">
-              Loan Status Distribution
+              Loan Status Distribution ({loans.length})
             </h3>
             {loans.length === 0 ? (
               <div className="flex items-center justify-center h-[250px] text-muted-foreground">
@@ -547,7 +570,7 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={statusData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    margin={{ top: 24, right: 10, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -579,6 +602,15 @@ export default function Dashboard() {
                       {statusData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
+                      <LabelList
+                        dataKey="value"
+                        position="top"
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          fill: "hsl(215, 16%, 30%)",
+                        }}
+                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>

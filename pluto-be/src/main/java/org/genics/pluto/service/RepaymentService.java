@@ -56,6 +56,7 @@ public class RepaymentService {
             if(r.getRepaymentStatus().equals(RepaymentStatus.PAID)) return r;
 
             var newStatus = req.getRepaymentStatus();
+            
             if (newStatus != null) {
                 r.setRepaymentStatus(newStatus);
                 if(newStatus.equals(RepaymentStatus.PAID)){

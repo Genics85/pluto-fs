@@ -9,6 +9,7 @@ import org.genics.pluto.model.FundingTransaction;
 import org.genics.pluto.repository.FundingAccountRepository;
 import org.genics.pluto.repository.FundingTransactionRepository;
 import org.genics.pluto.repository.PrincipalRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class FundingTransactionService {
     }
 
     public List<FundingTransactionResponse> findByAccountId(Long accountId) {
-        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId)
+        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId, PageRequest.of(0, 50))
                 .stream()
                 .map(this::toResponse)
                 .toList();
