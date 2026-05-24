@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -9,9 +9,11 @@ import {
   Building2,
   UserCog,
   Menu,
-  X
+  X,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { logout } from '../../hooks/useAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -29,6 +31,12 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <>
@@ -93,7 +101,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-sidebar-border p-4">
+          <div className="border-t border-sidebar-border p-4 space-y-1">
             <Link
               to="/settings"
               onClick={onClose}
@@ -102,6 +110,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Settings className="h-5 w-5" />
               Settings
             </Link>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            >
+              <LogOut className="h-5 w-5" />
+              Logout
+            </button>
           </div>
         </div>
       </aside>
