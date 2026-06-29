@@ -21,6 +21,11 @@ export const borrowerApi = createApi({
           : [{ type: "Borrowers", id: "LIST" }],
     }),
 
+    getBorrowerById: build.query<Borrower, number>({
+      query: (id) => `/borrowers/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Borrowers", id }],
+    }),
+
     addBorrower: build.mutation<Borrower, AddBorrowerRequest>({
       query: (newBorrower) => ({
         url: "/borrowers",
@@ -44,4 +49,4 @@ export const borrowerApi = createApi({
   }),
 });
 
-export const { useGetBorrowersQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } = borrowerApi;
+export const { useGetBorrowersQuery, useGetBorrowerByIdQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } = borrowerApi;

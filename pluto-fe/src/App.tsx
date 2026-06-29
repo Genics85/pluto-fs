@@ -8,6 +8,7 @@ import Loans from "./pages/Loans";
 import LoanDetails from "./pages/LoanDetails";
 import NewLoan from "./pages/NewLoans";
 import Borrowers from "./pages/Borrowers";
+import BorrowerDetail from "./pages/BorrowerDetail";
 import Accounts from "./pages/Accounts";
 import Principals from "./pages/Principals";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/loans/new" element={<PrivateRoute><NewLoan /></PrivateRoute>} />
           <Route path="/loans/:id" element={<PrivateRoute><LoanDetails /></PrivateRoute>} />
           <Route path="/borrowers" element={<PrivateRoute><Borrowers /></PrivateRoute>} />
+          <Route path="/borrowers/:id" element={<PrivateRoute><BorrowerDetail /></PrivateRoute>} />
           <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
           <Route path="/principals" element={<PrivateRoute><Principals /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Plus, MoreHorizontal, Mail, Phone, Pencil, MapPin, CreditCard } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import { useGetBorrowersQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } from "../services/borrowerApi";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import type { AddBorrowerRequest, Borrower } from "../types/loan";
 import { toast } from "sonner";
 
@@ -430,73 +431,65 @@ export default function Borrowers() {
         />
       </div>
 
-      {/* Borrowers Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {filteredBorrowers.map((borrower) => (
-          <div
-            key={borrower.id}
-            className="bg-card rounded-xl border border-border/50 shadow-sm p-6 animate-fade-in hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-primary">
-                    {borrower.firstName?.[0] || ""}
-                    {borrower.lastName?.[0] || ""}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">
-                    {borrower.firstName} {borrower.lastName}
-                  </h3>
-                  <span className="badge-active">
-                    Active
-                  </span>
-                </div>
-              </div>
-              <BorrowerMenu onEdit={() => openEdit(borrower)} />
-            </div>
-
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0" />
-                {borrower.email || "N/A"}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 shrink-0" />
-                {borrower.phone || "N/A"}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0" />
-                {borrower.location || "N/A"}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CreditCard className="h-4 w-4 shrink-0" />
-                {borrower.ghanaCard || "N/A"}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-border/50">
-              <div
-                className="cursor-pointer hover:bg-muted/50 p-2 -m-2 rounded-lg transition-colors"
-                onClick={() => navigate("/loans", { state: { borrowerName: `${borrower.firstName} ${borrower.lastName}` } })}
-              >
-                <p className="text-xs text-muted-foreground">Active Loans</p>
-                <p className="font-semibold text-primary hover:text-primary/80 transition-colors">
-                  {Array.isArray(borrower.loans) ? borrower.loans.length : 0}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Total Borrowed</p>
-                <p className="font-semibold text-foreground">
-                  {Array.isArray(borrower.loans)
-                    ? `GH₵${borrower.loans.reduce((sum, loan) => sum + loan.principalAmount, 0).toLocaleString()}`
-                    : "GH₵0"}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Borrowers Table */}
+      <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Ghana Card</TableHead>
+              <TableHead className="text-center">Loans</TableHead>
+              <TableHead className="text-right">Total Borrowed</TableHead>
+              <TableHead className="w-12" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredBorrowers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  No customers found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredBorrowers.map((borrower) => (
+                <TableRow key={borrower.id} className="cursor-pointer" onClick={() => navigate(`/borrowers/${borrower.id}`)}>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-semibold text-primary">
+                          {borrower.firstName?.[0] || ""}{borrower.lastName?.[0] || ""}
+                        </span>
+                      </div>
+                      <span className="font-medium text-foreground">
+                        {borrower.firstName} {borrower.lastName}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{borrower.email || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{borrower.phone || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{borrower.location || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{borrower.ghanaCard || "—"}</TableCell>
+                  <TableCell className="text-center">
+                    <span className="font-semibold text-primary">
+                      {Array.isArray(borrower.loans) ? borrower.loans.length : 0}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {Array.isArray(borrower.loans)
+                      ? `GH₵${borrower.loans.reduce((sum, loan) => sum + loan.principalAmount, 0).toLocaleString()}`
+                      : "GH₵0"}
+                  </TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <BorrowerMenu onEdit={() => openEdit(borrower)} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </Layout>
   );

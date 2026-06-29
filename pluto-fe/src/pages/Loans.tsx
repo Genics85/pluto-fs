@@ -35,37 +35,36 @@ export default function AllLoans() {
     }
   }, [borrowerFilter]);
 
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 1) % 7));
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+
   const loans = apiLoans.map((l) => {
     const borrowerName = l.borrowerName || "Unknown Customer";
     const principal = new Intl.NumberFormat("en-GH", {
       style: "currency",
       currency: "GHS",
     }).format(l.principalAmount || 0);
-    const startDate = l.startDate
-      ? new Date(l.startDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-      : "-";
-    // Calculate actual amount paid from repayments with PAID status
-    const actualAmountPaid = l.repayments
-      ?.filter((r) => r.repaymentStatus === "PAID")
-      .reduce((sum, r) => sum + (r.amountPaid || 0), 0) || 0;
-    const amountPaid = new Intl.NumberFormat("en-GH", {
-      style: "currency",
-      currency: "GHS",
-    }).format(actualAmountPaid);
+    const weeksPaid = (l.repayments || []).filter((r) => r.repaymentStatus === "PAID").length;
+    const totalWeeks = l.durationWeeks || 0;
+    const repaymentProgress = `${weeksPaid}/${totalWeeks}`;
     const status = l.status || "ACTIVE";
+    const paidThisWeek = (l.repayments || []).some((r) => {
+      const d = new Date(r.paymentDate);
+      return r.repaymentStatus === "PAID" && d >= weekStart && d < weekEnd;
+    });
 
     return {
       id: l.id,
       displayId: typeof l.id === "number" ? `LN-${l.id}` : String(l.id),
-      borrowerName: borrowerName,
+      borrowerName,
       principal,
-      startDate,
+      paidThisWeek,
       status,
-      amountPaid,
+      repaymentProgress,
     };
   });
 
@@ -183,12 +182,14 @@ export default function AllLoans() {
                   <p className="font-medium">{loan.principal}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Amount Paid</p>
-                  <p className="font-medium text-success">{loan.amountPaid}</p>
+                  <p className="text-muted-foreground">Weeks Paid</p>
+                  <p className="font-medium">{loan.repaymentProgress}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-muted-foreground">Start Date</p>
-                  <p className="font-medium">{loan.startDate}</p>
+                  <p className="text-muted-foreground">Paid This Week</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${loan.paidThisWeek ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                    {loan.paidThisWeek ? "Yes" : "No"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -205,8 +206,8 @@ export default function AllLoans() {
                 <th>Loan ID</th>
                 <th>Customer</th>
                 <th>Principal</th>
-                <th>Repayment Start Date</th>
-                <th>Amount Paid</th>
+                <th>Paid This Week</th>
+                <th>Weeks Paid</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -230,10 +231,12 @@ export default function AllLoans() {
                     <td className="font-medium text-foreground">{loan.displayId}</td>
                     <td>{loan.borrowerName.toUpperCase()}</td>
                     <td className="font-medium">{loan.principal}</td>
-                    <td className="text-muted-foreground">{loan.startDate}</td>
-                    <td className="font-medium text-success">
-                      {loan.amountPaid}
+                    <td>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${loan.paidThisWeek ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
+                        {loan.paidThisWeek ? "Yes" : "No"}
+                      </span>
                     </td>
+                    <td className="font-medium">{loan.repaymentProgress}</td>
                     <td>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

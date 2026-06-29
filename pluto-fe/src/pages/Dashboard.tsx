@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import {
@@ -18,6 +18,10 @@ import { Button } from "../components/ui/button";
 import { useGetLoansQuery } from "../services/loansApi";
 import { useGetBorrowersQuery } from "../services/borrowerApi";
 import { useGetFundingAccountsQuery } from "../services/accountApi";
+import { useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
+import { MarkRepaymentPaidDialog } from "../components/loans/MarkRepaymentPaidDialog";
+import { type Repayment } from "../types/loan";
+import { toast } from "sonner";
 import {
   AreaChart,
   Area,
@@ -35,6 +39,30 @@ import {
 export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
+  const [selectedRepayment, setSelectedRepayment] = useState<Repayment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [updateRepaymentStatus, { isLoading: isUpdating }] = useUpdateRepaymentStatusMutation();
+
+  const handleRegisterPayment = (repayment: Repayment, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedRepayment(repayment);
+    setIsDialogOpen(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedRepayment) return;
+    try {
+      await updateRepaymentStatus({
+        id: selectedRepayment.id,
+        status: { repaymentStatus: "PAID" },
+      }).unwrap();
+      toast.success("Repayment marked as paid successfully!");
+      setIsDialogOpen(false);
+      setSelectedRepayment(null);
+    } catch {
+      toast.error("Failed to mark repayment as paid. Please try again.");
+    }
+  };
 
   // Fetch all data from APIs
   const { data: loans = [], isLoading: loansLoading } = useGetLoansQuery();
@@ -177,6 +205,12 @@ export default function Dashboard() {
       );
   }, [loans]);
 
+  const collectionRate = useMemo(() => {
+    if (repaymentsThisWeek.length === 0) return null;
+    const paid = repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length;
+    return Math.round((paid / repaymentsThisWeek.length) * 100);
+  }, [repaymentsThisWeek]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-GH", {
       style: "currency",
@@ -309,22 +343,25 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Interest Earned
+                  Collection Rate
                 </p>
-                <p className="mt-2 text-2xl font-bold text-success">
-                  {formatCurrency(totalInterestEarned)}
+                <p className={`mt-2 text-2xl font-bold ${collectionRate === null ? "text-muted-foreground" : collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`}>
+                  {collectionRate === null ? "—" : `${collectionRate}%`}
                 </p>
               </div>
-              <div className="p-2 rounded-lg bg-success/10">
-                <ArrowUpRight className="h-5 w-5 text-success" />
+              <div className={`p-2 rounded-lg ${collectionRate === null ? "bg-muted/30" : collectionRate >= 80 ? "bg-success/10" : collectionRate >= 50 ? "bg-yellow-500/10" : "bg-destructive/10"}`}>
+                <ArrowUpRight className={`h-5 w-5 ${collectionRate === null ? "text-muted-foreground" : collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`} />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">
-                From {paidLoans.length} paid loans
+                {collectionRate === null
+                  ? "No repayments this week"
+                  : `${repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length} of ${repaymentsThisWeek.length} collected`}
               </span>
             </div>
           </div>
+
         </div>
 
         {/* Loan Stats & Funding Overview Row */}
@@ -380,17 +417,29 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-foreground">
-                          {formatCurrency(repayment.amountPaid)}
-                        </p>
-                        <span
-                          className={getStatusBadge(
-                            repayment.repaymentStatus.toLowerCase(),
-                          )}
-                        >
-                          {repayment.repaymentStatus}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground">
+                            {formatCurrency(repayment.amountPaid)}
+                          </p>
+                          <span
+                            className={getStatusBadge(
+                              repayment.repaymentStatus.toLowerCase(),
+                            )}
+                          >
+                            {repayment.repaymentStatus}
+                          </span>
+                        </div>
+                        {repayment.repaymentStatus !== "PAID" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-8 shrink-0"
+                            onClick={(e) => handleRegisterPayment(repayment, e)}
+                          >
+                            Register Payment
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -726,6 +775,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <MarkRepaymentPaidDialog
+        repayment={selectedRepayment}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleConfirmPayment}
+        isLoading={isUpdating}
+      />
     </Layout>
   );
 }
