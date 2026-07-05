@@ -1,19 +1,61 @@
-const SESSION_KEY = "lt_session";
+import { baseUrl } from "../services/commons";
 
-export function isAuthenticated(): boolean {
-  // return !!localStorage.getItem(SESSION_KEY);
-  return true;
+const TOKEN_KEY = "lt_token";
+const USER_KEY = "lt_user";
+
+export interface AuthUser {
+  id: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role: string;
 }
 
-export function login(username: string, password: string): boolean {
-  // Replace with a real API call when backend auth is ready
-  // if (username === "admin" && password === "admin123") {
-  //   localStorage.setItem(SESSION_KEY, btoa(`${username}:${Date.now()}`));
-  //   return true;
-  // }
-  return true;
+interface AuthResponse extends AuthUser {
+  token: string;
+}
+
+export function isAuthenticated(): boolean {
+  return !!localStorage.getItem(TOKEN_KEY);
+}
+
+export function getCurrentUser(): AuthUser | null {
+  const raw = localStorage.getItem(USER_KEY);
+  return raw ? (JSON.parse(raw) as AuthUser) : null;
+}
+
+/**
+ * Exchanges a Google ID token (credential) for an app session.
+ * Throws with a readable message if the account is not registered/active.
+ */
+export async function loginWithGoogle(idToken: string): Promise<AuthUser> {
+  const res = await fetch(`${baseUrl}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!res.ok) {
+    let message = "Sign-in failed. Please try again.";
+    try {
+      const body = await res.json();
+      if (body?.message) message = body.message;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(message);
+  }
+
+  const data: AuthResponse = await res.json();
+  const { token, ...user } = data;
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  return user;
 }
 
 export function logout(): void {
-  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }

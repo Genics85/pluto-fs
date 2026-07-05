@@ -75,20 +75,10 @@ export default function Settings() {
         {/* Security Section */}
         <div className="bg-card rounded-xl border border-border/50 shadow-sm p-6 animate-fade-in">
           <h3 className="text-lg font-semibold text-foreground mb-4">Security</h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" />
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Sign-in is managed through Google. There is no password to change — your
+            access is controlled by your Google account and your administrator.
+          </p>
         </div>
 
         {/* Save Button */}

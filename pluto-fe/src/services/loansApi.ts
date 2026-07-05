@@ -1,6 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import type { Loan, LoanAddRequest, LoanWithSchedule } from "../types/loan";
-import { baseUrl } from "./commons";
+import { baseQueryWithAuth } from "./commons";
 
 export type LoanStatus = "ACTIVE" | "PAID" | "DEFAULTED" | "CANCELLED";
 
@@ -10,7 +10,7 @@ export interface UpdateLoanStatusRequest {
 
 export const loansApi = createApi({
   reducerPath: "loansApi",
-  baseQuery: fetchBaseQuery({ baseUrl }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Loans"],
   endpoints: (build) => ({
     getLoans: build.query<Loan[], void>({

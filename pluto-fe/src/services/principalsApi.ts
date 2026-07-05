@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { baseUrl } from "./commons";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithAuth } from "./commons";
 
 export interface Principal {
   id: number;
@@ -18,7 +18,7 @@ export interface CreatePrincipalRequest {
 
 export const principalsApi = createApi({
   reducerPath: "principalsApi",
-  baseQuery: fetchBaseQuery({ baseUrl }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Principals"],
   endpoints: (build) => ({
     getPrincipals: build.query<Principal[], void>({

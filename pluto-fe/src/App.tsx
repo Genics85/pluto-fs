@@ -2,7 +2,9 @@ import { Toaster } from "./components/ui/toaster";
 import { Toaster as Sonner } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tool-tip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { googleClientId } from "./services/commons";
 import Index from "./pages/index";
 import Loans from "./pages/Loans";
 import LoanDetails from "./pages/LoanDetails";
@@ -24,6 +26,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
+  <GoogleOAuthProvider clientId={googleClientId}>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -47,6 +50,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </GoogleOAuthProvider>
 );
 
 export default App;

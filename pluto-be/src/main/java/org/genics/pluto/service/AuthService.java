@@ -3,13 +3,11 @@ package org.genics.pluto.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.auth.AuthResponse;
-import org.genics.pluto.dto.auth.ChangePasswordRequest;
-import org.genics.pluto.dto.auth.LoginRequest;
-import org.genics.pluto.dto.auth.ResetPasswordRequest;
+import org.genics.pluto.dto.auth.GoogleLoginRequest;
 import org.genics.pluto.model.User;
 import org.genics.pluto.repository.UserRepository;
+import org.genics.pluto.util.GoogleTokenVerifier;
 import org.genics.pluto.util.JwtUtil;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,18 +16,24 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final UserRepository userRepo;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final GoogleTokenVerifier googleTokenVerifier;
     private final JwtUtil jwtUtil;
 
-    public AuthResponse login(LoginRequest req) {
-        User user = userRepo.findByUsername(req.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+    /**
+     * Authenticates a user via a Google ID token. The token is verified against
+     * Google, and the resolved email must match an existing, active user.
+     */
+    public AuthResponse loginWithGoogle(GoogleLoginRequest req) {
+        if (req.getIdToken() == null || req.getIdToken().isBlank())
+            throw new IllegalArgumentException("Missing Google token");
+
+        String email = googleTokenVerifier.verifyAndGetEmail(req.getIdToken());
+
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("No account is registered for this Google email"));
 
         if (!user.isActive())
             throw new IllegalArgumentException("Account is disabled");
-
-        if (!passwordEncoder.matches(req.getPassword(), user.getHashedPassword()))
-            throw new IllegalArgumentException("Invalid username or password");
 
         String token = jwtUtil.generate(user);
 
@@ -43,27 +47,5 @@ public class AuthService {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .build();
-    }
-
-    public void changePassword(ChangePasswordRequest req) {
-        User user = userRepo.findByUsername(req.getUsername())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        if (!user.isActive())
-            throw new IllegalArgumentException("Account is disabled");
-
-        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getHashedPassword()))
-            throw new IllegalArgumentException("Current password is incorrect");
-
-        user.setHashedPassword(passwordEncoder.encode(req.getNewPassword()));
-        userRepo.save(user);
-    }
-
-    public void resetPassword(Long userId, ResetPasswordRequest req) {
-        User user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
-
-        user.setHashedPassword(passwordEncoder.encode(req.getNewPassword()));
-        userRepo.save(user);
     }
 }

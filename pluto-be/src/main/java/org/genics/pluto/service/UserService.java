@@ -7,7 +7,6 @@ import org.genics.pluto.dto.user.UserResponse;
 import org.genics.pluto.dto.user.UserUpdateRequest;
 import org.genics.pluto.model.User;
 import org.genics.pluto.repository.UserRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +17,6 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepo;
-    private final BCryptPasswordEncoder passwordEncoder;
 
     public UserResponse create(UserCreateRequest req) {
         if (userRepo.existsByUsername(req.getUsername()))
@@ -32,7 +30,6 @@ public class UserService {
                 .email(req.getEmail())
                 .username(req.getUsername())
                 .phone(req.getPhone())
-                .hashedPassword(passwordEncoder.encode(req.getPassword()))
                 .role(req.getRole())
                 .build();
 
@@ -62,13 +59,6 @@ public class UserService {
 
     public void delete(Long id) {
         userRepo.delete(getOrThrow(id));
-    }
-
-    public boolean verifyPassword(String username, String rawPassword) {
-        return userRepo.findByUsername(username)
-                .filter(User::isActive)
-                .map(u -> passwordEncoder.matches(rawPassword, u.getHashedPassword()))
-                .orElse(false);
     }
 
     private User getOrThrow(Long id) {

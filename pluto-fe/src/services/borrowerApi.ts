@@ -1,10 +1,10 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { baseUrl } from "./commons";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithAuth } from "./commons";
 import type { Borrower, AddBorrowerRequest, UpdateBorrowerRequest } from "../types/loan";
 
 export const borrowerApi = createApi({
   reducerPath: "borrowerApi",
-  baseQuery: fetchBaseQuery({ baseUrl }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Borrowers"],
   endpoints: (build) => ({
     getBorrowers: build.query<Borrower[], void>({

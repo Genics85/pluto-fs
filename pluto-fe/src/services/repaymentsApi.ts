@@ -1,6 +1,6 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
 import type { Repayment } from "../types/loan";
-import { baseUrl } from "./commons";
+import { baseQueryWithAuth } from "./commons";
 
 interface UpdateRepaymentStatusRequest {
   repaymentStatus: "PAID" | "PENDING" | "OVERDUE";
@@ -8,7 +8,7 @@ interface UpdateRepaymentStatusRequest {
 
 export const repaymentsApi = createApi({
   reducerPath: "repaymentsApi",
-  baseQuery: fetchBaseQuery({ baseUrl }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["Repayments"],
   endpoints: (build) => ({
     getRepaymentsByLoan: build.query<Repayment[], number | string>({

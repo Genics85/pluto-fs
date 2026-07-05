@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { baseUrl } from "./commons";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithAuth } from "./commons";
 
 export interface FundingAccount {
   id: number;
@@ -21,7 +21,7 @@ export interface CreateFundingAccountRequest {
 
 export const accountApi = createApi({
   reducerPath: "accountApi",
-  baseQuery: fetchBaseQuery({ baseUrl }),
+  baseQuery: baseQueryWithAuth,
   tagTypes: ["FundingAccounts"],
   endpoints: (build) => ({
     getFundingAccounts: build.query<FundingAccount[], void>({

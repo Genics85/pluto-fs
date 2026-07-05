@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CreditCard, TrendingUp, Users, ShieldCheck, Eye, EyeOff } from "lucide-react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { login } from "../hooks/useAuth";
+import { CreditCard, TrendingUp, Users, ShieldCheck } from "lucide-react";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { loginWithGoogle } from "../hooks/useAuth";
 
 const features = [
   { icon: TrendingUp, label: "Portfolio analytics at a glance" },
@@ -15,26 +13,24 @@ const features = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSuccess = async (cred: CredentialResponse) => {
     setError("");
+    if (!cred.credential) {
+      setError("No credential returned from Google. Please try again.");
+      return;
+    }
+
     setLoading(true);
-
-    await new Promise((r) => setTimeout(r, 400));
-
-    const ok = login(username.trim(), password);
-    setLoading(false);
-
-    if (ok) {
+    try {
+      await loginWithGoogle(cred.credential);
       navigate("/", { replace: true });
-    } else {
-      setError("Invalid username or password.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,57 +128,34 @@ export default function Login() {
               Welcome back
             </h2>
             <p className="text-sm text-muted-foreground">
-              Sign in to your account to continue
+              Sign in with your Google account to continue
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                autoFocus
+          <div className="space-y-5">
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError("Google sign-in was cancelled or failed.")}
+                useOneTap
+                theme="outline"
+                size="large"
+                width="320"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <p className="text-sm text-destructive font-medium">{error}</p>
+            {loading && (
+              <p className="text-sm text-muted-foreground text-center">Signing in…</p>
             )}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
+            {error && (
+              <p className="text-sm text-destructive font-medium text-center">{error}</p>
+            )}
+
+            <p className="text-xs text-muted-foreground text-center">
+              Access is limited to accounts registered by your administrator.
+            </p>
+          </div>
         </div>
       </div>
     </div>

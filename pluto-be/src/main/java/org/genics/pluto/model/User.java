@@ -37,7 +37,10 @@ public class User {
 
     private String phone;
 
-    @Column(nullable = false)
+    /**
+     * Legacy password column, retained for schema compatibility. No longer used
+     * for authentication — sign-in is handled via Google Sign-In (see AuthService).
+     */
     private String hashedPassword;
 
     @Enumerated(EnumType.STRING)
