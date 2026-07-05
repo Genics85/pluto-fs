@@ -40,9 +40,16 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         // Expose the authenticated identity to downstream controllers if needed.
         Claims claims = jwtUtil.parse(token);
+        String role = claims.get("role", String.class);
         request.setAttribute("userId", claims.get("userId"));
         request.setAttribute("username", claims.getSubject());
-        request.setAttribute("role", claims.get("role"));
+        request.setAttribute("role", role);
+
+        if (request.getRequestURI().startsWith("/api/users") && !"ADMIN".equals(role)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin role required");
+            return false;
+        }
+
         return true;
     }
 }

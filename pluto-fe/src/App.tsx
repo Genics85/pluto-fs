@@ -17,12 +17,18 @@ import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
 import Funds from "./pages/Funds";
 import Login from "./pages/Login";
-import { isAuthenticated } from "./hooks/useAuth";
+import Users from "./pages/Users";
+import { isAuthenticated, isAdmin } from "./hooks/useAuth";
 
 const queryClient = new QueryClient();
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated() ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  return isAdmin() ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 const App = () => (
@@ -44,6 +50,7 @@ const App = () => (
           <Route path="/principals" element={<PrivateRoute><Principals /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/funds" element={<PrivateRoute><Funds /></PrivateRoute>} />
+          <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

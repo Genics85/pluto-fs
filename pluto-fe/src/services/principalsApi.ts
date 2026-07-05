@@ -16,6 +16,13 @@ export interface CreatePrincipalRequest {
   phone: string;
 }
 
+export interface UpdatePrincipalRequest {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+}
+
 export const principalsApi = createApi({
   reducerPath: "principalsApi",
   baseQuery: baseQueryWithAuth,
@@ -42,7 +49,22 @@ export const principalsApi = createApi({
       }),
       invalidatesTags: [{ type: "Principals", id: "LIST" }],
     }),
+    updatePrincipal: build.mutation<Principal, UpdatePrincipalRequest>({
+      query: ({ id, ...body }) => ({
+        url: `/principals/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Principals", id },
+        { type: "Principals", id: "LIST" },
+      ],
+    }),
   }),
 });
 
-export const { useGetPrincipalsQuery, useCreatePrincipalMutation } = principalsApi;
+export const {
+  useGetPrincipalsQuery,
+  useCreatePrincipalMutation,
+  useUpdatePrincipalMutation,
+} = principalsApi;

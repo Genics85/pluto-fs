@@ -2,6 +2,7 @@ package org.genics.pluto.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.principal.PrincipalAddRequest;
+import org.genics.pluto.dto.principal.PrincipalUpdateRequest;
 import org.genics.pluto.model.Principal;
 import org.genics.pluto.service.PrincipalService;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,11 @@ public class PrincipalController {
     public ResponseEntity<Principal> create(@RequestBody PrincipalAddRequest req) {
         Principal saved = principalService.save(req);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public Principal update(@PathVariable Long id, @RequestBody PrincipalUpdateRequest req) {
+        return principalService.update(id, req);
     }
 
     @DeleteMapping("/{id}")

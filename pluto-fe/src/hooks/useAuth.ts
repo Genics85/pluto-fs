@@ -26,6 +26,10 @@ export function getCurrentUser(): AuthUser | null {
   return raw ? (JSON.parse(raw) as AuthUser) : null;
 }
 
+export function isAdmin(): boolean {
+  return getCurrentUser()?.role === "ADMIN";
+}
+
 /**
  * Exchanges a Google ID token (credential) for an app session.
  * Throws with a readable message if the account is not registered/active.

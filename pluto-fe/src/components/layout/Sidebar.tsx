@@ -8,12 +8,13 @@ import {
   Wallet2,
   Building2,
   UserCog,
+  ShieldCheck,
   Menu,
   X,
   LogOut,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { logout } from '../../hooks/useAuth';
+import { logout, isAdmin } from '../../hooks/useAuth';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -21,7 +22,11 @@ const navigation = [
   { name: 'Loans', href: '/loans', icon: CreditCard },
   { name: 'Accounts', href: '/accounts', icon: Building2 },
   { name: 'Investors', href: '/principals', icon: UserCog },
-  { name: 'Funds', href: '/funds', icon: Wallet2 }
+  { name: 'Funds', href: '/funds', icon: Wallet2 },
+];
+
+const adminNavigation = [
+  { name: 'Users', href: '/users', icon: ShieldCheck },
 ];
 
 interface SidebarProps {
@@ -77,7 +82,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
-            {navigation.map((item) => {
+            {(isAdmin() ? [...navigation, ...adminNavigation] : navigation).map((item) => {
               const isActive = location.pathname === item.href ||
                 (item.href !== '/' && location.pathname.startsWith(item.href));
 

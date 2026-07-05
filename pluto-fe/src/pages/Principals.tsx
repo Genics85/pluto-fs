@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
-import { useGetPrincipalsQuery, useCreatePrincipalMutation } from "../services/principalsApi";
+import {
+  useGetPrincipalsQuery,
+  useCreatePrincipalMutation,
+  useUpdatePrincipalMutation,
+  type Principal,
+} from "../services/principalsApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -13,20 +18,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Plus, UserCog, Mail, Phone } from "lucide-react";
+import { Plus, Pencil, UserCog, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
+
+const emptyForm = { name: "", email: "", phone: "" };
 
 export default function Principals() {
   usePageTitle("Investors");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-  });
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Principal | null>(null);
+  const [formData, setFormData] = useState(emptyForm);
+  const [editFormData, setEditFormData] = useState(emptyForm);
 
   const { data: principals = [], isLoading, isError } = useGetPrincipalsQuery();
   const [createPrincipal, { isLoading: isCreating }] = useCreatePrincipalMutation();
+  const [updatePrincipal, { isLoading: isUpdating }] = useUpdatePrincipalMutation();
 
   const formatDate = (date: string) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -60,11 +67,7 @@ export default function Principals() {
       await createPrincipal(formData).unwrap();
       toast.success("Investor created successfully!");
       setIsDialogOpen(false);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-      });
+      setFormData(emptyForm);
     } catch (error) {
       toast.error("Failed to create investor. Please try again.");
       console.error(error);
@@ -72,11 +75,37 @@ export default function Principals() {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
+    setFormData(emptyForm);
+  };
+
+  const openEdit = (principal: Principal) => {
+    setEditTarget(principal);
+    setEditFormData({
+      name: principal.name,
+      email: principal.email,
+      phone: principal.phone,
     });
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+
+    if (!editFormData.name.trim() || !editFormData.email.trim() || !editFormData.phone.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await updatePrincipal({ id: editTarget.id, ...editFormData }).unwrap();
+      toast.success("Investor updated successfully!");
+      setEditOpen(false);
+      setEditTarget(null);
+    } catch (error) {
+      toast.error("Failed to update investor. Please try again.");
+      console.error(error);
+    }
   };
 
   return (
@@ -140,6 +169,13 @@ export default function Principals() {
                       ID: {principal.id}
                     </p>
                   </div>
+                  <button
+                    className="p-2 hover:bg-muted rounded-lg transition-colors"
+                    onClick={() => openEdit(principal)}
+                    title="Edit"
+                  >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </button>
                 </div>
 
                 <div className="mt-6 space-y-3">
@@ -250,6 +286,82 @@ export default function Principals() {
                 </Button>
                 <Button type="submit" disabled={isCreating}>
                   {isCreating ? "Creating..." : "Create Investor"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Principal Dialog */}
+        <Dialog open={editOpen} onOpenChange={(open) => {
+          setEditOpen(open);
+          if (!open) setEditTarget(null);
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Investor</DialogTitle>
+              <DialogDescription>
+                Update this investor's contact information
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  placeholder="e.g., John Doe"
+                  value={editFormData.name}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, name: e.target.value })
+                  }
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="e.g., john.doe@example.com"
+                  value={editFormData.email}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, email: e.target.value })
+                  }
+                  className="mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  type="tel"
+                  placeholder="0XX XXX XXXX"
+                  value={editFormData.phone}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })
+                  }
+                  className="mt-2"
+                  maxLength={10}
+                  required
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditOpen(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Saving..." : "Save Changes"}
                 </Button>
               </DialogFooter>
             </form>

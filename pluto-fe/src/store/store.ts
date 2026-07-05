@@ -10,6 +10,7 @@ import { repaymentsApi } from "../services/repaymentsApi";
 import { accountApi } from "../services/accountApi";
 import { principalsApi } from "../services/principalsApi";
 import { transactionsApi } from "../services/transactionsApi";
+import { usersApi } from "../services/usersApi";
 
 // Configure the root store and attach RTK Query slices here.
 export const store = configureStore({
@@ -20,6 +21,7 @@ export const store = configureStore({
     [accountApi.reducerPath]: accountApi.reducer,
     [principalsApi.reducerPath]: principalsApi.reducer,
     [transactionsApi.reducerPath]: transactionsApi.reducer,
+    [usersApi.reducerPath]: usersApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -28,7 +30,8 @@ export const store = configureStore({
       .concat(repaymentsApi.middleware)
       .concat(accountApi.middleware)
       .concat(principalsApi.middleware)
-      .concat(transactionsApi.middleware),
+      .concat(transactionsApi.middleware)
+      .concat(usersApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;
