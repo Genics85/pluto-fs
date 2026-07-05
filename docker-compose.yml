@@ -26,7 +26,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # Google Sign-In: overrides app.google.client-id via Spring relaxed binding
-      APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-984543114797-qcl0jc87cssuquhfipthof7q68lb7fu1.apps.googleusercontent.com}
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,7 +38,7 @@ services:
       context: ./pluto-fe
       args:
         # Vite bakes this into the bundle at build time (see pluto-fe/Dockerfile)
-        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-984543114797-qcl0jc87cssuquhfipthof7q68lb7fu1.apps.googleusercontent.com}
     image: ${GHCR_IMAGE_PREFIX:-local}/pluto-fe:latest
     restart: unless-stopped
     ports:

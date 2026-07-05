@@ -1,5 +1,6 @@
+import { Fragment, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, Mail, MapPin, CreditCard, MessageCircle } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Phone, Mail, MapPin, CreditCard, MessageCircle } from "lucide-react";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useGetBorrowerByIdQuery } from "../services/borrowerApi";
@@ -20,8 +21,18 @@ const statusClass: Record<string, string> = {
 export default function BorrowerDetail() {
   const { id } = useParams<{ id: string }>();
   const { data: borrower, isLoading, isError } = useGetBorrowerByIdQuery(Number(id), { skip: !id });
+  const [collapsedLoanIds, setCollapsedLoanIds] = useState<Set<number>>(new Set());
 
   usePageTitle(borrower ? `${borrower.firstName} ${borrower.lastName}` : "Customer");
+
+  const toggleLoan = (loanId: number) => {
+    setCollapsedLoanIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(loanId)) next.delete(loanId);
+      else next.add(loanId);
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -43,13 +54,17 @@ export default function BorrowerDetail() {
     );
   }
 
-  const allRepayments = (borrower.loans || []).flatMap((loan) =>
-    (loan.repayments || []).map((r) => ({
-      ...r,
-      loanId: loan.id,
-      loanPrincipal: loan.principalAmount,
+  const allRepayments = (borrower.loans || []).flatMap((loan) => loan.repayments || []);
+
+  const loansWithRepayments = (borrower.loans || [])
+    .filter((loan) => (loan.repayments || []).length > 0)
+    .map((loan) => ({
+      ...loan,
+      repayments: [...loan.repayments].sort(
+        (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
+      ),
     }))
-  ).sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
 
   const totalBorrowed = (borrower.loans || []).reduce((s, l) => s + l.principalAmount, 0);
   const paidRepayments = allRepayments.filter((r) => r.repaymentStatus === "PAID").length;
@@ -131,7 +146,6 @@ export default function BorrowerDetail() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Loan</TableHead>
               <TableHead>Due Date</TableHead>
               <TableHead>Paid On</TableHead>
               <TableHead>Amount</TableHead>
@@ -140,33 +154,62 @@ export default function BorrowerDetail() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {allRepayments.length === 0 ? (
+            {loansWithRepayments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                   No repayments found.
                 </TableCell>
               </TableRow>
             ) : (
-              allRepayments.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <Link to={`/loans/${r.loanId}`} className="text-primary hover:underline font-medium" onClick={(e) => e.stopPropagation()}>
-                      LN-{r.loanId}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(r.paymentDate)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {r.repaymentStatus === "PAID" && r.updatedAt ? formatDate(r.updatedAt) : "—"}
-                  </TableCell>
-                  <TableCell className="font-medium">{formatCurrency(r.amountPaid)}</TableCell>
-                  <TableCell className="text-muted-foreground capitalize">{r.paymentMethod.replace(/_/g, " ")}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass[r.repaymentStatus] ?? "bg-gray-100 text-gray-600"}`}>
-                      {r.repaymentStatus}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))
+              loansWithRepayments.map((loan) => {
+                const isCollapsed = collapsedLoanIds.has(loan.id);
+                return (
+                  <Fragment key={loan.id}>
+                    <TableRow
+                      className="bg-muted/50 hover:bg-muted cursor-pointer select-none"
+                      onClick={() => toggleLoan(loan.id)}
+                    >
+                      <TableCell colSpan={5} className="py-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {isCollapsed ? (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                            )}
+                            <Link
+                              to={`/loans/${loan.id}`}
+                              className="text-primary hover:underline font-medium"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              LN-{loan.id}
+                            </Link>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatCurrency(loan.principalAmount)} ·{" "}
+                            {loan.repayments.filter((r) => r.repaymentStatus === "PAID").length}/{loan.repayments.length} repayments paid
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {!isCollapsed && loan.repayments.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-muted-foreground">{formatDate(r.paymentDate)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {r.repaymentStatus === "PAID" && r.updatedAt ? formatDate(r.updatedAt) : "—"}
+                        </TableCell>
+                        <TableCell className="font-medium">{formatCurrency(r.amountPaid)}</TableCell>
+                        <TableCell className="text-muted-foreground capitalize">{r.paymentMethod.replace(/_/g, " ")}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass[r.repaymentStatus] ?? "bg-gray-100 text-gray-600"}`}>
+                            {r.repaymentStatus}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
+                );
+              })
             )}
           </TableBody>
         </Table>

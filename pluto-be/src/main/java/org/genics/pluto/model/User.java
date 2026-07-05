@@ -41,7 +41,8 @@ public class User {
      * Legacy password column, retained for schema compatibility. No longer used
      * for authentication — sign-in is handled via Google Sign-In (see AuthService).
      */
-    private String hashedPassword;
+    @Builder.Default
+    private String hashedPassword = "NO_PASSWORD";
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
