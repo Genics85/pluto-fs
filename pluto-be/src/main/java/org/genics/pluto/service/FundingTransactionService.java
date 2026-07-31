@@ -51,7 +51,7 @@ public class FundingTransactionService {
     }
 
     public List<FundingTransactionResponse> findByAccountId(Long accountId) {
-        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId, PageRequest.of(0, 10000))
+        return txRepo.findByFundingAccountIdOrderByCreatedAtDesc(accountId, PageRequest.of(0, 1000000))
                 .stream()
                 .map(this::toResponse)
                 .toList();
