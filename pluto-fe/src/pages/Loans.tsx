@@ -19,7 +19,7 @@ import {
 export default function AllLoans() {
   usePageTitle("All Loans");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const navigate = useNavigate();
   const location = useLocation();
 

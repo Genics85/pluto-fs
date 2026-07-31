@@ -125,7 +125,7 @@ export default function Dashboard() {
     )
     .slice(0, 5);
 
-  // Prepare chart data - loans over time (grouped by month)
+  // Prepare chart data - disbursements over time (grouped by month)
   const loanTrendData = useMemo(() => {
     if (loans.length === 0) return [];
 
@@ -136,7 +136,10 @@ export default function Dashboard() {
     > = {};
 
     loans.forEach((loan) => {
-      const date = new Date(loan.startDate);
+      // A loan is created when the money goes out, so createdAt is the
+      // disbursement date. startDate is when repayments begin, which can
+      // fall in a later month.
+      const date = new Date(loan.createdAt);
       const monthKey = `${date.getFullYear()}-${String(
         date.getMonth() + 1,
       ).padStart(2, "0")}`;
@@ -199,16 +202,33 @@ export default function Dashboard() {
             loanId: loan.id,
           })),
       )
-      .sort(
-        (a, b) =>
-          new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime(),
-      );
+      .sort((a, b) => {
+        // Still-to-collect first, so the actionable rows sit at the top.
+        const isPaid = (status: string) => (status === "PAID" ? 1 : 0);
+        return (
+          isPaid(a.repaymentStatus) - isPaid(b.repaymentStatus) ||
+          new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+        );
+      });
   }, [loans]);
 
   const collectionRate = useMemo(() => {
     if (repaymentsThisWeek.length === 0) return null;
     const paid = repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length;
     return Math.round((paid / repaymentsThisWeek.length) * 100);
+  }, [repaymentsThisWeek]);
+
+  // amountPaid carries the scheduled installment on every repayment, paid or
+  // not, so the PAID rows sum to what came in and all rows to what was due.
+  const collectedThisWeek = useMemo(() => {
+    const sum = (rs: typeof repaymentsThisWeek) =>
+      rs.reduce((total, r) => total + (r.amountPaid || 0), 0);
+    return {
+      collected: sum(
+        repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID"),
+      ),
+      expected: sum(repaymentsThisWeek),
+    };
   }, [repaymentsThisWeek]);
 
   const formatCurrency = (amount: number) => {
@@ -353,12 +373,18 @@ export default function Dashboard() {
                 <ArrowUpRight className={`h-5 w-5 ${collectionRate === null ? "text-muted-foreground" : collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`} />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">
+            <div className="mt-4 space-y-1 text-sm">
+              <p className="text-muted-foreground">
                 {collectionRate === null
                   ? "No repayments this week"
                   : `${repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length} of ${repaymentsThisWeek.length} collected`}
-              </span>
+              </p>
+              {collectionRate !== null && (
+                <p className="text-muted-foreground">
+                  {formatCurrency(collectedThisWeek.collected)} of{" "}
+                  {formatCurrency(collectedThisWeek.expected)}
+                </p>
+              )}
             </div>
           </div>
 
@@ -377,7 +403,8 @@ export default function Dashboard() {
                 {repaymentsThisWeek.length !== 1 ? "s" : ""}
               </span>
             </div>
-            <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden max-h-[220px] overflow-y-auto">
+            {/* ~69px per row, so five fit before the list starts scrolling */}
+            <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden max-h-[350px] overflow-y-auto">
               {repaymentsThisWeek.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
                   No repayments scheduled this week
