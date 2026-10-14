@@ -5,8 +5,8 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 
-export const baseUrl = "http://localhost:8080/api";
-// export const baseUrl = "/api";
+// export const baseUrl = "http://localhost:8080/api";
+export const baseUrl = "/api";
 
 // Google OAuth 2.0 Web client ID (see .env / .env.example)
 export const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
