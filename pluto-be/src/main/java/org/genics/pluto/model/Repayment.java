@@ -2,6 +2,8 @@ package org.genics.pluto.model;
 
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.genics.pluto.enums.PaymentMethod;
 import org.genics.pluto.enums.RepaymentStatus;
+import org.genics.pluto.util.RepaymentScore;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -54,4 +57,16 @@ public class Repayment {
     private LocalDateTime updatedAt;
 
     private LocalDateTime paidAt;
+
+    // How much of the payment came out of the funding account's reserve, so an undo can put it back.
+    @JsonIgnore
+    @Column(precision = 15, scale = 2)
+    private BigDecimal releasedFromReserve;
+
+    /** Points for this repayment (see RepaymentScore); null when not due yet or still in grace. */
+    @Transient
+    @JsonProperty("score")
+    public Integer getScore() {
+        return RepaymentScore.pointsFor(this, LocalDate.now());
+    }
 }

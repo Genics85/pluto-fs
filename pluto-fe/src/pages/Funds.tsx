@@ -79,6 +79,10 @@ export default function Funds() {
     }).format(new Date(date));
   };
 
+  // Repayment undos are stored as ADJUSTMENT; the backend writes this note on them.
+  const isReversal = (tx: { type: TransactionType; note?: string | null }) =>
+    tx.type === "ADJUSTMENT" && !!tx.note?.startsWith("Reversal of repayment");
+
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
       case "DEPOSIT":
@@ -376,7 +380,13 @@ export default function Funds() {
                         {getTransactionIcon(tx.type)}
                       </div>
                       <div>
-                        <p className="font-medium text-foreground">{tx.type === "ALLOCATION" ? "DISBURSEMENT" : tx.type === "RELEASE" ? "REPAYMENT" : tx.type}</p>
+                        <p className="font-medium text-foreground">{tx.type === "ALLOCATION"
+                            ? "DISBURSEMENT"
+                            : tx.type === "RELEASE"
+                              ? "REPAYMENT"
+                              : isReversal(tx)
+                                ? "REVERSAL"
+                                : tx.type}</p>
                         <p className="text-sm text-muted-foreground line-clamp-1">
                           {tx.note}
                         </p>

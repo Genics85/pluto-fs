@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Plus, MoreHorizontal, Pencil } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Pencil, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -20,6 +20,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { ScoreBadge } from "../components/ScoreBadge";
 import type { AddBorrowerRequest, Borrower } from "../types/loan";
 import { toast } from "sonner";
+
+type SortKey = "loans" | "score";
+type SortState = { key: SortKey; dir: "asc" | "desc" } | null;
+
+const sortValue = (b: Borrower, key: SortKey) =>
+  key === "loans" ? (Array.isArray(b.loans) ? b.loans.length : 0) : b.score;
+
+function SortableHead({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  className = "",
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: SortState;
+  onSort: (key: SortKey) => void;
+  className?: string;
+}) {
+  const active = sort?.key === sortKey;
+  const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 hover:text-foreground transition-colors ${active ? "text-foreground" : ""}`}
+      >
+        {label}
+        <Icon className="h-3.5 w-3.5" />
+      </button>
+    </TableHead>
+  );
+}
 
 const emptyForm: AddBorrowerRequest = {
   firstName: "",
@@ -71,6 +106,7 @@ function BorrowerMenu({ onEdit }: { onEdit: () => void }) {
 export default function Borrowers() {
   usePageTitle("Customers");
   const [searchTerm, setSearchTerm] = useState("");
+  const [sort, setSort] = useState<SortState>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Borrower | null>(null);
@@ -88,6 +124,22 @@ export default function Borrowers() {
     const search = searchTerm.toLowerCase();
     return fullName.includes(search) || email.includes(search);
   });
+
+  // First click sorts highest first; second click flips; third clears.
+  const handleSort = (key: SortKey) =>
+    setSort((prev) =>
+      prev?.key !== key ? { key, dir: "desc" } : prev.dir === "desc" ? { key, dir: "asc" } : null,
+    );
+
+  const sortedBorrowers = !sort
+    ? filteredBorrowers
+    : [...filteredBorrowers].sort((a, b) => {
+        const av = sortValue(a, sort.key);
+        const bv = sortValue(b, sort.key);
+        // Customers without a score yet always go last.
+        if (av === null || bv === null) return av === bv ? 0 : av === null ? 1 : -1;
+        return sort.dir === "asc" ? av - bv : bv - av;
+      });
 
   const phoneFields = ["phone", "whatsapp"];
 
@@ -438,12 +490,10 @@ export default function Borrowers() {
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Ghana Card</TableHead>
-              <TableHead className="text-center">Loans</TableHead>
-              <TableHead>Score</TableHead>
+              <SortableHead label="Loans" sortKey="loans" sort={sort} onSort={handleSort} className="text-center" />
+              <SortableHead label="Score" sortKey="score" sort={sort} onSort={handleSort} />
               <TableHead className="text-right">Total Borrowed</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -451,12 +501,12 @@ export default function Borrowers() {
           <TableBody>
             {filteredBorrowers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   No customers found.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBorrowers.map((borrower) => (
+              sortedBorrowers.map((borrower) => (
                 <TableRow key={borrower.id} className="cursor-pointer" onClick={() => navigate(`/borrowers/${borrower.id}`)}>
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -470,10 +520,8 @@ export default function Borrowers() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{borrower.email || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{borrower.phone || "—"}</TableCell>
                   <TableCell className="text-muted-foreground">{borrower.location || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{borrower.ghanaCard || "—"}</TableCell>
                   <TableCell className="text-center">
                     <span className="font-semibold text-primary">
                       {Array.isArray(borrower.loans) ? borrower.loans.length : 0}

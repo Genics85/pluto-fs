@@ -15,6 +15,7 @@ import Accounts from "./pages/Accounts";
 import Principals from "./pages/Principals";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
+import Info from "./pages/Info";
 import Funds from "./pages/Funds";
 import Login from "./pages/Login";
 import Users from "./pages/Users";
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/borrowers/:id" element={<PrivateRoute><BorrowerDetail /></PrivateRoute>} />
           <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
           <Route path="/principals" element={<PrivateRoute><Principals /></PrivateRoute>} />
+          <Route path="/info" element={<PrivateRoute><Info /></PrivateRoute>} />
           <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/funds" element={<PrivateRoute><Funds /></PrivateRoute>} />
           <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />

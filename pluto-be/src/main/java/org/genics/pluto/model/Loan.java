@@ -87,6 +87,12 @@ public class Loan {
     }
 
     @Transient
+    @JsonProperty("borrowerId")
+    public Long getBorrowerId() {
+        return this.borrower == null ? null : this.borrower.getId();
+    }
+
+    @Transient
     @JsonProperty("repaymentScore")
     public Integer getRepaymentScore() {
         if (this.repayments == null) return null;

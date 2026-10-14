@@ -35,7 +35,19 @@ export const repaymentsApi = createApi({
         { type: "Repayments", id: "LOAN-*" },
       ],
     }),
+    // Admin only: puts a repayment marked PAID by mistake back to PENDING.
+    reverseRepayment: build.mutation<Repayment, number>({
+      query: (id) => ({
+        url: `/repayments/${id}/reverse`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: "Repayments", id }],
+    }),
   }),
 });
 
-export const { useGetRepaymentsByLoanQuery, useUpdateRepaymentStatusMutation } = repaymentsApi;
+export const {
+  useGetRepaymentsByLoanQuery,
+  useUpdateRepaymentStatusMutation,
+  useReverseRepaymentMutation,
+} = repaymentsApi;

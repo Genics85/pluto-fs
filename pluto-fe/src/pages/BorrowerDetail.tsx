@@ -6,9 +6,12 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import { useGetBorrowerByIdQuery } from "../services/borrowerApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
-import { useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
+import { useReverseRepaymentMutation, useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
 import { MarkRepaymentPaidDialog } from "../components/loans/MarkRepaymentPaidDialog";
+import { ReverseRepaymentDialog } from "../components/loans/ReverseRepaymentDialog";
+import { isAdmin } from "../hooks/useAuth";
 import { ScoreBadge } from "../components/ScoreBadge";
+import { ScoreCard } from "../components/ScoreCard";
 import { type Repayment } from "../types/loan";
 import { toast } from "sonner";
 
@@ -31,6 +34,8 @@ export default function BorrowerDetail() {
   const [selectedRepayment, setSelectedRepayment] = useState<Repayment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [updateRepaymentStatus, { isLoading: isUpdating }] = useUpdateRepaymentStatusMutation();
+  const [undoRepayment, setUndoRepayment] = useState<Repayment | null>(null);
+  const [reverseRepayment, { isLoading: isReversing }] = useReverseRepaymentMutation();
 
   usePageTitle(borrower ? `${borrower.firstName} ${borrower.lastName}` : "Customer");
 
@@ -62,6 +67,18 @@ export default function BorrowerDetail() {
       refetch();
     } catch {
       toast.error("Failed to mark repayment as paid. Please try again.");
+    }
+  };
+
+  const handleConfirmUndo = async () => {
+    if (!undoRepayment) return;
+    try {
+      await reverseRepayment(undoRepayment.id).unwrap();
+      toast.success("Payment reversed. The repayment is pending again.");
+      setUndoRepayment(null);
+      refetch();
+    } catch {
+      toast.error("Failed to reverse the payment. Please try again.");
     }
   };
 
@@ -149,13 +166,7 @@ export default function BorrowerDetail() {
         </div>
 
         {/* Summary stats */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4 pt-6 border-t border-border/50">
-          <div>
-            <p className="text-xs text-muted-foreground">Score</p>
-            <div className="mt-1">
-              <ScoreBadge score={borrower.score} />
-            </div>
-          </div>
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-border/50">
           <div>
             <p className="text-xs text-muted-foreground">Total Loans</p>
             <p className="text-xl font-bold text-foreground">{(borrower.loans || []).length}</p>
@@ -177,6 +188,8 @@ export default function BorrowerDetail() {
         </div>
       </div>
 
+      <ScoreCard score={borrower.score} repayments={allRepayments} />
+
       {/* Repayment History */}
       <h2 className="text-sm font-medium text-muted-foreground mb-3">Repayment History</h2>
       <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
@@ -188,13 +201,14 @@ export default function BorrowerDetail() {
               <TableHead>Amount</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-center">Score</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loansWithRepayments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                   No repayments found.
                 </TableCell>
               </TableRow>
@@ -207,7 +221,7 @@ export default function BorrowerDetail() {
                       className="bg-muted/50 hover:bg-muted cursor-pointer select-none"
                       onClick={() => toggleLoan(loan.id)}
                     >
-                      <TableCell colSpan={6} className="py-2.5">
+                      <TableCell colSpan={7} className="py-2.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {isCollapsed ? (
@@ -244,7 +258,20 @@ export default function BorrowerDetail() {
                             {r.repaymentStatus}
                           </span>
                         </TableCell>
+                        <TableCell className="text-center">
+                          <ScoreBadge score={r.score} compact />
+                        </TableCell>
                         <TableCell className="text-right">
+                          {r.repaymentStatus === "PAID" && isAdmin() && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-8 text-destructive hover:text-destructive"
+                              onClick={() => setUndoRepayment(r)}
+                            >
+                              Undo
+                            </Button>
+                          )}
                           {r.repaymentStatus !== "PAID" && (
                             <Button
                               size="sm"
@@ -272,6 +299,14 @@ export default function BorrowerDetail() {
         onOpenChange={setIsDialogOpen}
         onConfirm={handleConfirmPayment}
         isLoading={isUpdating}
+      />
+
+      <ReverseRepaymentDialog
+        repayment={undoRepayment}
+        open={undoRepayment !== null}
+        onOpenChange={(open) => !open && setUndoRepayment(null)}
+        onConfirm={handleConfirmUndo}
+        isLoading={isReversing}
       />
     </Layout>
   );

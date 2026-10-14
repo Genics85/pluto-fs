@@ -14,8 +14,25 @@ export function scoreClass(score: number | null) {
   return "bg-red-100 text-red-800";
 }
 
-export function ScoreBadge({ score }: { score: number | null | undefined }) {
+export function ScoreBadge({
+  score,
+  compact = false,
+}: {
+  score: number | null | undefined;
+  // Number only, for a single repayment's points in a table.
+  compact?: boolean;
+}) {
   const value = score ?? null;
+  if (compact) {
+    return (
+      <span
+        className={`inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-full text-xs font-medium ${value === null ? "text-muted-foreground" : scoreClass(value)}`}
+        title={value === null ? "Not scored yet: not due, or still within the 3-day grace period" : `${value} points`}
+      >
+        {value === null ? "—" : value}
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${scoreClass(value)}`}

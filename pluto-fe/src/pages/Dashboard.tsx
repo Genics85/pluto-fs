@@ -13,6 +13,7 @@ import {
   XCircle,
   CalendarClock,
   Gauge,
+  ArrowUpDown,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -23,7 +24,7 @@ import { useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
 import { MarkRepaymentPaidDialog } from "../components/loans/MarkRepaymentPaidDialog";
 import { type Repayment } from "../types/loan";
 import { toast } from "sonner";
-import { scoreClass, scoreLabel } from "../components/ScoreBadge";
+import { ScoreBadge, scoreClass, scoreLabel } from "../components/ScoreBadge";
 import { currentRepayments, currentWeek } from "../lib/repayments";
 import {
   AreaChart,
@@ -44,6 +45,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [selectedRepayment, setSelectedRepayment] = useState<Repayment | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Lowest first by default so the customers needing attention are on top.
+  const [scoreSort, setScoreSort] = useState<"asc" | "desc">("asc");
   const [updateRepaymentStatus, { isLoading: isUpdating }] = useUpdateRepaymentStatusMutation();
 
   const handleRegisterPayment = (repayment: Repayment, e: React.MouseEvent) => {
@@ -122,6 +125,13 @@ export default function Dashboard() {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
     .slice(0, 5);
+
+  // Customers that have a score, in the chosen order; those without one ("New") go last.
+  const customersByScore = [...borrowers].sort((a, b) => {
+    if (a.score == null || b.score == null)
+      return a.score == b.score ? 0 : a.score == null ? 1 : -1;
+    return scoreSort === "asc" ? a.score - b.score : b.score - a.score;
+  });
 
   // Get recent borrowers (last 5)
   const recentBorrowers = [...borrowers]
@@ -403,7 +413,7 @@ export default function Dashboard() {
 
         </div>
 
-        {/* Loan Stats & Funding Overview Row */}
+        {/* Repayments This Week & Funding Overview Row */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Repayments This Week */}
           <div className="lg:col-span-2">
@@ -710,57 +720,113 @@ export default function Dashboard() {
 
         {/* Recent Activity & Accounts Section */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Recent Loans */}
-          <div className="lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                Recent Loans
-              </h2>
-              <Link
-                to="/loans"
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                View all →
-              </Link>
+          {/* Recent Loans & Customer Scores */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Recent Loans
+                </h2>
+                <Link
+                  to="/loans"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  View all →
+                </Link>
+              </div>
+              <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+                {recentLoans.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No loans yet
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/50">
+                    {recentLoans.map((loan) => (
+                      <div
+                        key={loan.id}
+                        className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/loans/${loan.id}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {loan.borrowerName || "Unknown Customer"}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              LN-{loan.id} • {formatDate(loan.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-foreground">
+                            {formatCurrency(loan.principalAmount)}
+                          </p>
+                          <span className={getStatusBadge(loan.status)}>
+                            {loan.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
-              {recentLoans.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No loans yet
-                </div>
-              ) : (
-                <div className="divide-y divide-border/50">
-                  {recentLoans.map((loan) => (
-                    <div
-                      key={loan.id}
-                      className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/loans/${loan.id}`)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <CreditCard className="h-5 w-5 text-primary" />
+
+            {/* Customer Scores */}
+            <div>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Customer Scores
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() => setScoreSort((s) => (s === "asc" ? "desc" : "asc"))}
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  {scoreSort === "asc" ? "Lowest first" : "Highest first"}
+                </Button>
+              </div>
+              <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden max-h-[350px] overflow-y-auto">
+                {customersByScore.length === 0 ? (
+                  <div className="text-center py-8 text-sm text-muted-foreground">
+                    No customers yet
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/50">
+                    {customersByScore.map((borrower) => (
+                      <div
+                        key={borrower.id}
+                        className="flex items-center justify-between gap-3 p-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                        onClick={() => navigate(`/borrowers/${borrower.id}`)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <span className="text-xs font-semibold text-primary">
+                              {borrower.firstName?.[0]}
+                              {borrower.lastName?.[0]}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {borrower.firstName} {borrower.lastName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {borrower.loans?.length ?? 0} loan
+                              {(borrower.loans?.length ?? 0) !== 1 ? "s" : ""}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {loan.borrowerName || "Unknown Customer"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            LN-{loan.id} • {formatDate(loan.createdAt)}
-                          </p>
-                        </div>
+                        <ScoreBadge score={borrower.score} />
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">
-                          {formatCurrency(loan.principalAmount)}
-                        </p>
-                        <span className={getStatusBadge(loan.status)}>
-                          {loan.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

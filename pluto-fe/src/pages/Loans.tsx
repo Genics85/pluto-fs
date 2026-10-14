@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, Download, Eye, X, PlusCircle } from "lucide-react";
+import { Search, Filter, Eye, X, PlusCircle, ClipboardList } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
@@ -7,6 +7,7 @@ import { useGetLoansQuery } from "../services/loansApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { ScoreBadge } from "../components/ScoreBadge";
+import { LoansSummaryDialog } from "../components/loans/LoansSummaryDialog";
 import { currentWeek, paidOn } from "../lib/repayments";
 import {
   Select,
@@ -22,6 +23,8 @@ export default function AllLoans() {
   usePageTitle("All Loans");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [paidThisWeekFilter, setPaidThisWeekFilter] = useState("all");
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -73,7 +76,10 @@ export default function AllLoans() {
       String(loan.displayId).toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "all" || loan.status.toLowerCase() === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPaidThisWeek =
+      paidThisWeekFilter === "all" ||
+      loan.paidThisWeek === (paidThisWeekFilter === "yes");
+    return matchesSearch && matchesStatus && matchesPaidThisWeek;
   });
 
   return (
@@ -84,9 +90,9 @@ export default function AllLoans() {
           <p className="page-description text-sm sm:text-base">View and manage all loan records.</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="gap-2 flex-1 sm:flex-none">
-            <Download className="h-4 w-4" />
-            Export
+          <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => setSummaryOpen(true)}>
+            <ClipboardList className="h-4 w-4" />
+            Summary
           </Button>
           <Button className="gap-2 flex-1 sm:flex-none" onClick={() => navigate("/loans/new")}>
             <PlusCircle className="h-4 w-4" />
@@ -135,6 +141,17 @@ export default function AllLoans() {
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="defaulted">Defaulted</SelectItem>
             <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={paidThisWeekFilter} onValueChange={setPaidThisWeekFilter}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Paid this week" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Paid This Week: All</SelectItem>
+            <SelectItem value="yes">Paid This Week</SelectItem>
+            <SelectItem value="no">Not Paid This Week</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -276,6 +293,8 @@ export default function AllLoans() {
           </table>
         </div>
       </div>
+
+      <LoansSummaryDialog loans={apiLoans} open={summaryOpen} onOpenChange={setSummaryOpen} />
     </Layout>
   );
 }

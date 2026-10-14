@@ -115,7 +115,8 @@ public class FundingAccountService {
         return acc;
     }
 
-    public FundingAccount releaseFromLoan(Long accountId, BigDecimal totalAmount, Long loanId, String customerName) {
+    /** Returns the portion taken out of the reserved balance, so the release can be reversed exactly. */
+    public BigDecimal releaseFromLoan(Long accountId, BigDecimal totalAmount, Long loanId, String customerName) {
         FundingAccount acc = accountRepo.findById(accountId)
                 .orElseThrow(() -> new IllegalArgumentException("Funding account not found"));
 
@@ -138,6 +139,34 @@ public class FundingAccountService {
                 .amount(totalAmount)
                 .type(FundingTransactionType.RELEASE)
                 .note("Loan repayment by " + customerName + " from loan " + loanId)
+                .build());
+
+        return reservedToRelease;
+    }
+
+    /**
+     * Undoes a {@link #releaseFromLoan} for a repayment marked paid by mistake:
+     * moves the amount out of available, back into reserved, and takes any
+     * spillover back off the total balance.
+     */
+    public FundingAccount reverseRelease(Long accountId, BigDecimal totalAmount, BigDecimal reservedReleased,
+                                         Long loanId, Long repaymentId) {
+        FundingAccount acc = accountRepo.findById(accountId)
+                .orElseThrow(() -> new IllegalArgumentException("Funding account not found"));
+
+        BigDecimal spillover = totalAmount.subtract(reservedReleased);
+
+        acc.setAvailableBalance(acc.getAvailableBalance().subtract(totalAmount));
+        acc.setReservedBalance(acc.getReservedBalance().add(reservedReleased));
+        acc.setTotalBalance(acc.getTotalBalance().subtract(spillover));
+
+        accountRepo.save(acc);
+
+        txRepo.save(FundingTransaction.builder()
+                .fundingAccount(acc)
+                .amount(totalAmount)
+                .type(FundingTransactionType.ADJUSTMENT)
+                .note("Reversal of repayment #" + repaymentId + " on loan " + loanId)
                 .build());
 
         return acc;

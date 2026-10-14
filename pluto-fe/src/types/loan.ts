@@ -48,6 +48,7 @@ export interface Loan {
   createdAt: string
   repayments: Repayment[]
   borrowerName: string
+  borrowerId: number
   repaymentScore: number | null
 }
 
@@ -60,6 +61,7 @@ export interface Repayment {
   createdAt: string
   updatedAt?: string
   paidAt?: string
+  score: number | null
 }
 
 export interface LoanAddRequest {

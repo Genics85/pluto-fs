@@ -1,5 +1,6 @@
 package org.genics.pluto.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.genics.pluto.dto.repayment.UpdateRepaymentRequest;
 import org.genics.pluto.model.Repayment;
@@ -62,6 +63,21 @@ public class RepaymentController {
         return repaymentService.updateStatus(id, req)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Admin only: undo a repayment that was marked PAID by mistake. */
+    @PostMapping("/{id}/reverse")
+    public ResponseEntity<?> reverse(@PathVariable Long id, HttpServletRequest request) {
+        if (!"ADMIN".equals(request.getAttribute("role"))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Admin role required");
+        }
+        try {
+            return repaymentService.reversePayment(id)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
 
 }

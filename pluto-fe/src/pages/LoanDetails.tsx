@@ -3,9 +3,15 @@ import { useParams, Link } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useGetLoanByIdQuery, useUpdateLoanStatusMutation, type LoanStatus } from '../services/loansApi';
-import { useGetRepaymentsByLoanQuery, useUpdateRepaymentStatusMutation } from '../services/repaymentsApi';
+import {
+  useGetRepaymentsByLoanQuery,
+  useUpdateRepaymentStatusMutation,
+  useReverseRepaymentMutation,
+} from '../services/repaymentsApi';
 import { PaymentScheduleTable } from '../components/loans/PaymentScheduleTable';
 import { MarkRepaymentPaidDialog } from '../components/loans/MarkRepaymentPaidDialog';
+import { ReverseRepaymentDialog } from '../components/loans/ReverseRepaymentDialog';
+import { isAdmin } from '../hooks/useAuth';
 import { StatusBadge } from '../components/ui/status-badge';
 import { ScoreBadge } from '../components/ScoreBadge';
 import { Button } from '../components/ui/button';
@@ -40,6 +46,8 @@ export default function LoanDetails() {
     skip: !id,
   });
   const [updateRepaymentStatus, { isLoading: isUpdating }] = useUpdateRepaymentStatusMutation();
+  const [undoRepayment, setUndoRepayment] = useState<Repayment | null>(null);
+  const [reverseRepayment, { isLoading: isReversing }] = useReverseRepaymentMutation();
   const [updateLoanStatus, { isLoading: isUpdatingStatus }] = useUpdateLoanStatusMutation();
 
   if (isLoading) {
@@ -120,6 +128,23 @@ export default function LoanDetails() {
     }
   };
 
+  const handleUndo = (repaymentId: number) => {
+    const repayment = repayments.find(r => r.id === repaymentId);
+    if (repayment) setUndoRepayment(repayment);
+  };
+
+  const handleConfirmUndo = async () => {
+    if (!undoRepayment) return;
+    try {
+      await reverseRepayment(undoRepayment.id).unwrap();
+      toast.success('Payment reversed. The repayment is pending again.');
+      setUndoRepayment(null);
+    } catch (error) {
+      toast.error('Failed to reverse the payment. Please try again.');
+      console.error('Error reversing repayment:', error);
+    }
+  };
+
   const handleStatusChange = async (newStatus: LoanStatus) => {
     if (!loanData || newStatus === loanData.status) return;
 
@@ -157,9 +182,16 @@ export default function LoanDetails() {
               <ScoreBadge score={loanData.repaymentScore} />
             </div>
             <p className="mt-1 font-display text-2xl sm:text-3xl font-bold text-foreground">
-              {loanData.borrower
-                ? `${loanData.borrower.firstName} ${loanData.borrower.lastName}`
-                : loanData.borrowerName || 'Unknown Customer'}
+              {loanData.borrowerId ? (
+                <Link
+                  to={`/borrowers/${loanData.borrowerId}`}
+                  className="hover:text-primary hover:underline underline-offset-4 transition-colors"
+                >
+                  {loanData.borrowerName || 'Unknown Customer'}
+                </Link>
+              ) : (
+                loanData.borrowerName || 'Unknown Customer'
+              )}
             </p>
             <p className="mt-0.5 text-sm sm:text-base text-muted-foreground">
               Started on {formatDate(loanData.startDate)}
@@ -268,6 +300,7 @@ export default function LoanDetails() {
                 <PaymentScheduleTable
                   repayments={repayments}
                   onMarkAsPaid={handleMarkAsPaid}
+                  onUndo={isAdmin() ? handleUndo : undefined}
                 />
               )}
             </div>
@@ -280,6 +313,14 @@ export default function LoanDetails() {
           onOpenChange={setIsDialogOpen}
           onConfirm={handleConfirmMarkAsPaid}
           isLoading={isUpdating}
+        />
+
+        <ReverseRepaymentDialog
+          repayment={undoRepayment}
+          open={undoRepayment !== null}
+          onOpenChange={(open) => !open && setUndoRepayment(null)}
+          onConfirm={handleConfirmUndo}
+          isLoading={isReversing}
         />
       </div>
     </Layout>
