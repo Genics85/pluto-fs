@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   CalendarClock,
+  Gauge,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -22,6 +23,8 @@ import { useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
 import { MarkRepaymentPaidDialog } from "../components/loans/MarkRepaymentPaidDialog";
 import { type Repayment } from "../types/loan";
 import { toast } from "sonner";
+import { scoreClass, scoreLabel } from "../components/ScoreBadge";
+import { currentRepayments, currentWeek } from "../lib/repayments";
 import {
   AreaChart,
   Area,
@@ -89,6 +92,16 @@ export default function Dashboard() {
       sum + ((loan.totalPayable || 0) - (loan.principalAmount || 0)),
     0,
   );
+
+  // Average repayment score over active loans that have one (none due yet = null)
+  const scoredActiveLoans = activeLoans.filter((l) => l.repaymentScore != null);
+  const averageScore =
+    scoredActiveLoans.length > 0
+      ? Math.round(
+          scoredActiveLoans.reduce((sum, l) => sum + (l.repaymentScore ?? 0), 0) /
+            scoredActiveLoans.length,
+        )
+      : null;
 
   // Calculate funding statistics
   const totalAvailable = accounts.reduce(
@@ -172,44 +185,18 @@ export default function Dashboard() {
     [activeLoans.length, paidLoans.length, defaultedLoans.length],
   );
 
-  // One repayment per active loan: the next one in line to collect, however
-  // far out it falls. If the loan's installment for the current week
-  // (Saturday to Friday) is already paid and nothing earlier is outstanding,
-  // that paid one is shown instead so this week's collections stay visible.
+  // Per active loan: what was paid this week, else the next one due (see currentRepayments).
   const repaymentsThisWeek = useMemo(() => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    const daysToSaturday = (now.getDay() + 1) % 7;
-    startOfWeek.setDate(now.getDate() - daysToSaturday);
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-
-    const byDate = (a: Repayment, b: Repayment) =>
-      new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime();
-
+    const week = currentWeek();
     return loans
       .filter((loan) => loan.status === "ACTIVE")
-      .flatMap((loan) => {
-        const repayments = [...(loan.repayments || [])].sort(byDate);
-        const nextUnpaid = repayments.find((r) => r.repaymentStatus !== "PAID");
-        const paidThisWeek = repayments.find((r) => {
-          const date = new Date(r.paymentDate);
-          return (
-            r.repaymentStatus === "PAID" &&
-            date >= startOfWeek &&
-            date < endOfWeek
-          );
-        });
-        const current =
-          paidThisWeek &&
-          (!nextUnpaid || new Date(nextUnpaid.paymentDate) >= endOfWeek)
-            ? paidThisWeek
-            : nextUnpaid;
-        return current
-          ? [{ ...current, borrowerName: loan.borrowerName, loanId: loan.id }]
-          : [];
-      })
+      .flatMap((loan) =>
+        currentRepayments(loan, week).map((r) => ({
+          ...r,
+          borrowerName: loan.borrowerName,
+          loanId: loan.id,
+        })),
+      )
       .sort((a, b) => {
         // Still-to-collect first, so the actionable rows sit at the top.
         const isPaid = (status: string) => (status === "PAID" ? 1 : 0);
@@ -301,7 +288,7 @@ export default function Dashboard() {
         </div>
 
         {/* Key Metrics Row */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           
           <div className="stat-card">
             <div className="flex items-start justify-between">
@@ -360,39 +347,57 @@ export default function Dashboard() {
                 <CalendarClock className="h-5 w-5 text-blue-500" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">
-                Weekly repayments due
-              </span>
-            </div>
+            {collectionRate === null ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No repayments due
+              </p>
+            ) : (
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${collectionRate >= 80 ? "bg-success" : collectionRate >= 50 ? "bg-yellow-500" : "bg-destructive"}`}
+                    style={{ width: `${collectionRate}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted-foreground">
+                    {formatCurrency(collectedThisWeek.collected)} collected ·{" "}
+                    {repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length} of {repaymentsThisWeek.length}
+                  </span>
+                  <span className={`font-semibold ${collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`}>
+                    {collectionRate}%
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="stat-card">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Collection Rate
+                  Avg Repayment Score
                 </p>
-                <p className={`mt-2 text-2xl font-bold ${collectionRate === null ? "text-muted-foreground" : collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`}>
-                  {collectionRate === null ? "—" : `${collectionRate}%`}
+                <p className="mt-2 text-2xl font-bold text-foreground">
+                  {averageScore === null ? "—" : averageScore}
                 </p>
               </div>
-              <div className={`p-2 rounded-lg ${collectionRate === null ? "bg-muted/30" : collectionRate >= 80 ? "bg-success/10" : collectionRate >= 50 ? "bg-yellow-500/10" : "bg-destructive/10"}`}>
-                <ArrowUpRight className={`h-5 w-5 ${collectionRate === null ? "text-muted-foreground" : collectionRate >= 80 ? "text-success" : collectionRate >= 50 ? "text-yellow-500" : "text-destructive"}`} />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Gauge className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <div className="mt-4 space-y-1 text-sm">
-              <p className="text-muted-foreground">
-                {collectionRate === null
-                  ? "No repayments this week"
-                  : `${repaymentsThisWeek.filter((r) => r.repaymentStatus === "PAID").length} of ${repaymentsThisWeek.length} collected`}
-              </p>
-              {collectionRate !== null && (
-                <p className="text-muted-foreground">
-                  {formatCurrency(collectedThisWeek.collected)} of{" "}
-                  {formatCurrency(collectedThisWeek.expected)}
-                </p>
+            <div className="mt-4 flex items-center gap-2 text-sm">
+              {averageScore !== null && (
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${scoreClass(averageScore)}`}
+                >
+                  {scoreLabel(averageScore)}
+                </span>
               )}
+              <span className="text-muted-foreground">
+                Across {scoredActiveLoans.length} active loan
+                {scoredActiveLoans.length !== 1 ? "s" : ""}
+              </span>
             </div>
           </div>
 

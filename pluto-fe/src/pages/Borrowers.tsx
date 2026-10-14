@@ -17,6 +17,7 @@ import {
 } from "../components/ui/dialog";
 import { useGetBorrowersQuery, useAddBorrowerMutation, useUpdateBorrowerMutation } from "../services/borrowerApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { ScoreBadge } from "../components/ScoreBadge";
 import type { AddBorrowerRequest, Borrower } from "../types/loan";
 import { toast } from "sonner";
 
@@ -442,6 +443,7 @@ export default function Borrowers() {
               <TableHead>Location</TableHead>
               <TableHead>Ghana Card</TableHead>
               <TableHead className="text-center">Loans</TableHead>
+              <TableHead>Score</TableHead>
               <TableHead className="text-right">Total Borrowed</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -449,7 +451,7 @@ export default function Borrowers() {
           <TableBody>
             {filteredBorrowers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                   No customers found.
                 </TableCell>
               </TableRow>
@@ -476,6 +478,9 @@ export default function Borrowers() {
                     <span className="font-semibold text-primary">
                       {Array.isArray(borrower.loans) ? borrower.loans.length : 0}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <ScoreBadge score={borrower.score} />
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     {Array.isArray(borrower.loans)

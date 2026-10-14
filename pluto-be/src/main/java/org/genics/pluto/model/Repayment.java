@@ -52,4 +52,6 @@ public class Repayment {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private LocalDateTime paidAt;
 }

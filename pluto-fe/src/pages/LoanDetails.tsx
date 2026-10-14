@@ -7,6 +7,7 @@ import { useGetRepaymentsByLoanQuery, useUpdateRepaymentStatusMutation } from '.
 import { PaymentScheduleTable } from '../components/loans/PaymentScheduleTable';
 import { MarkRepaymentPaidDialog } from '../components/loans/MarkRepaymentPaidDialog';
 import { StatusBadge } from '../components/ui/status-badge';
+import { ScoreBadge } from '../components/ScoreBadge';
 import { Button } from '../components/ui/button';
 import {
   Select,
@@ -153,6 +154,7 @@ export default function LoanDetails() {
                 Loan #{loanData.id}
               </h1>
               <StatusBadge status={loanData.status} />
+              <ScoreBadge score={loanData.repaymentScore} />
             </div>
             <p className="mt-1 font-display text-2xl sm:text-3xl font-bold text-foreground">
               {loanData.borrower

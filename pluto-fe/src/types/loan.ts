@@ -8,6 +8,7 @@ export interface Borrower {
   ghanaCard: string
   location: string
   loans: Loan[]
+  score: number | null
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +48,7 @@ export interface Loan {
   createdAt: string
   repayments: Repayment[]
   borrowerName: string
+  repaymentScore: number | null
 }
 
 export interface Repayment {
@@ -57,6 +59,7 @@ export interface Repayment {
   paymentMethod: "CASH" | "MOBILE_MONEY" | "BANK_TRANSFER" | "CHEQUE"
   createdAt: string
   updatedAt?: string
+  paidAt?: string
 }
 
 export interface LoanAddRequest {

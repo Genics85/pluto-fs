@@ -5,6 +5,12 @@ import { Layout } from "../components/layout/Layout";
 import { usePageTitle } from "../hooks/usePageTitle";
 import { useGetBorrowerByIdQuery } from "../services/borrowerApi";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
+import { Button } from "../components/ui/button";
+import { useUpdateRepaymentStatusMutation } from "../services/repaymentsApi";
+import { MarkRepaymentPaidDialog } from "../components/loans/MarkRepaymentPaidDialog";
+import { ScoreBadge } from "../components/ScoreBadge";
+import { type Repayment } from "../types/loan";
+import { toast } from "sonner";
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat("en-GH", { style: "currency", currency: "GHS" }).format(amount);
@@ -20,8 +26,11 @@ const statusClass: Record<string, string> = {
 
 export default function BorrowerDetail() {
   const { id } = useParams<{ id: string }>();
-  const { data: borrower, isLoading, isError } = useGetBorrowerByIdQuery(Number(id), { skip: !id });
+  const { data: borrower, isLoading, isError, refetch } = useGetBorrowerByIdQuery(Number(id), { skip: !id });
   const [collapsedLoanIds, setCollapsedLoanIds] = useState<Set<number>>(new Set());
+  const [selectedRepayment, setSelectedRepayment] = useState<Repayment | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [updateRepaymentStatus, { isLoading: isUpdating }] = useUpdateRepaymentStatusMutation();
 
   usePageTitle(borrower ? `${borrower.firstName} ${borrower.lastName}` : "Customer");
 
@@ -32,6 +41,28 @@ export default function BorrowerDetail() {
       else next.add(loanId);
       return next;
     });
+  };
+
+  const handleRegisterPayment = (repayment: Repayment) => {
+    setSelectedRepayment(repayment);
+    setIsDialogOpen(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!selectedRepayment) return;
+    try {
+      await updateRepaymentStatus({
+        id: selectedRepayment.id,
+        status: { repaymentStatus: "PAID" },
+      }).unwrap();
+      toast.success("Repayment marked as paid successfully!");
+      setIsDialogOpen(false);
+      setSelectedRepayment(null);
+      // The borrower is cached by a separate API, so the mutation doesn't refresh it.
+      refetch();
+    } catch {
+      toast.error("Failed to mark repayment as paid. Please try again.");
+    }
   };
 
   if (isLoading) {
@@ -118,7 +149,13 @@ export default function BorrowerDetail() {
         </div>
 
         {/* Summary stats */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-border/50">
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-5 gap-4 pt-6 border-t border-border/50">
+          <div>
+            <p className="text-xs text-muted-foreground">Score</p>
+            <div className="mt-1">
+              <ScoreBadge score={borrower.score} />
+            </div>
+          </div>
           <div>
             <p className="text-xs text-muted-foreground">Total Loans</p>
             <p className="text-xl font-bold text-foreground">{(borrower.loans || []).length}</p>
@@ -151,12 +188,13 @@ export default function BorrowerDetail() {
               <TableHead>Amount</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loansWithRepayments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   No repayments found.
                 </TableCell>
               </TableRow>
@@ -169,7 +207,7 @@ export default function BorrowerDetail() {
                       className="bg-muted/50 hover:bg-muted cursor-pointer select-none"
                       onClick={() => toggleLoan(loan.id)}
                     >
-                      <TableCell colSpan={5} className="py-2.5">
+                      <TableCell colSpan={6} className="py-2.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             {isCollapsed ? (
@@ -184,6 +222,7 @@ export default function BorrowerDetail() {
                             >
                               LN-{loan.id}
                             </Link>
+                            <ScoreBadge score={loan.repaymentScore} />
                           </div>
                           <span className="text-xs text-muted-foreground">
                             {formatCurrency(loan.principalAmount)} ·{" "}
@@ -196,7 +235,7 @@ export default function BorrowerDetail() {
                       <TableRow key={r.id}>
                         <TableCell className="text-muted-foreground">{formatDate(r.paymentDate)}</TableCell>
                         <TableCell className="text-muted-foreground">
-                          {r.repaymentStatus === "PAID" && r.updatedAt ? formatDate(r.updatedAt) : "—"}
+                          {r.repaymentStatus === "PAID" && (r.paidAt ?? r.updatedAt) ? formatDate((r.paidAt ?? r.updatedAt)!) : "—"}
                         </TableCell>
                         <TableCell className="font-medium">{formatCurrency(r.amountPaid)}</TableCell>
                         <TableCell className="text-muted-foreground capitalize">{r.paymentMethod.replace(/_/g, " ")}</TableCell>
@@ -204,6 +243,18 @@ export default function BorrowerDetail() {
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass[r.repaymentStatus] ?? "bg-gray-100 text-gray-600"}`}>
                             {r.repaymentStatus}
                           </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.repaymentStatus !== "PAID" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-8"
+                              onClick={() => handleRegisterPayment(r)}
+                            >
+                              Mark as Paid
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -214,6 +265,14 @@ export default function BorrowerDetail() {
           </TableBody>
         </Table>
       </div>
+
+      <MarkRepaymentPaidDialog
+        repayment={selectedRepayment}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleConfirmPayment}
+        isLoading={isUpdating}
+      />
     </Layout>
   );
 }

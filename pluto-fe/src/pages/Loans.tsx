@@ -6,6 +6,8 @@ import { usePageTitle } from "../hooks/usePageTitle";
 import { useGetLoansQuery } from "../services/loansApi";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { ScoreBadge } from "../components/ScoreBadge";
+import { currentWeek, paidOn } from "../lib/repayments";
 import {
   Select,
   SelectContent,
@@ -35,12 +37,7 @@ export default function AllLoans() {
     }
   }, [borrowerFilter]);
 
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - ((now.getDay() + 1) % 7));
-  weekStart.setHours(0, 0, 0, 0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
+  const week = currentWeek();
 
   const loans = apiLoans.map((l) => {
     const borrowerName = l.borrowerName || "Unknown Customer";
@@ -52,9 +49,10 @@ export default function AllLoans() {
     const totalWeeks = l.durationWeeks || 0;
     const repaymentProgress = `${weeksPaid}/${totalWeeks}`;
     const status = l.status || "ACTIVE";
+    // A payment registered this week, matching the dashboard's collected rows.
     const paidThisWeek = (l.repayments || []).some((r) => {
-      const d = new Date(r.paymentDate);
-      return r.repaymentStatus === "PAID" && d >= weekStart && d < weekEnd;
+      const date = paidOn(r);
+      return date !== null && date >= week.start && date < week.end;
     });
 
     return {
@@ -65,6 +63,7 @@ export default function AllLoans() {
       paidThisWeek,
       status,
       repaymentProgress,
+      repaymentScore: l.repaymentScore,
     };
   });
 
@@ -185,11 +184,15 @@ export default function AllLoans() {
                   <p className="text-muted-foreground">Weeks Paid</p>
                   <p className="font-medium">{loan.repaymentProgress}</p>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <p className="text-muted-foreground">Paid This Week</p>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${loan.paidThisWeek ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
                     {loan.paidThisWeek ? "Yes" : "No"}
                   </span>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Score</p>
+                  <ScoreBadge score={loan.repaymentScore} />
                 </div>
               </div>
             </div>
@@ -208,6 +211,7 @@ export default function AllLoans() {
                 <th>Principal</th>
                 <th>Paid This Week</th>
                 <th>Weeks Paid</th>
+                <th>Score</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -215,13 +219,13 @@ export default function AllLoans() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8">
+                  <td colSpan={8} className="text-center py-8">
                     Loading loans...
                   </td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8">
+                  <td colSpan={8} className="text-center py-8">
                     Failed to load loans
                   </td>
                 </tr>
@@ -237,6 +241,9 @@ export default function AllLoans() {
                       </span>
                     </td>
                     <td className="font-medium">{loan.repaymentProgress}</td>
+                    <td>
+                      <ScoreBadge score={loan.repaymentScore} />
+                    </td>
                     <td>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

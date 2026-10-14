@@ -12,6 +12,7 @@ import lombok.Builder.Default;
 
 import org.genics.pluto.enums.InterestType;
 import org.genics.pluto.enums.LoanStatus;
+import org.genics.pluto.util.RepaymentScore;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -83,6 +84,13 @@ public class Loan {
         if (first == null) return last;
         if (last == null) return first;
         return first + " " + last;
+    }
+
+    @Transient
+    @JsonProperty("repaymentScore")
+    public Integer getRepaymentScore() {
+        if (this.repayments == null) return null;
+        return RepaymentScore.average(this.repayments.stream(), LocalDate.now());
     }
 
 }
