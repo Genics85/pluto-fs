@@ -90,13 +90,6 @@ export default function Dashboard() {
     0,
   );
 
-  // Calculate expected weekly repayments from active loans
-  const expectedWeeklyRepayments = activeLoans.reduce((sum, loan) => {
-    const weeklyPayment =
-      loan.durationWeeks > 0 ? loan.totalPayable / loan.durationWeeks : 0;
-    return sum + weeklyPayment;
-  }, 0);
-
   // Calculate funding statistics
   const totalAvailable = accounts.reduce(
     (sum, acc) => sum + acc.availableBalance,
@@ -179,7 +172,10 @@ export default function Dashboard() {
     [activeLoans.length, paidLoans.length, defaultedLoans.length],
   );
 
-  // Get repayments with payment dates in the current week (Saturday to Friday)
+  // One repayment per active loan: the next one in line to collect, however
+  // far out it falls. If the loan's installment for the current week
+  // (Saturday to Friday) is already paid and nothing earlier is outstanding,
+  // that paid one is shown instead so this week's collections stay visible.
   const repaymentsThisWeek = useMemo(() => {
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -189,19 +185,31 @@ export default function Dashboard() {
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
 
+    const byDate = (a: Repayment, b: Repayment) =>
+      new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime();
+
     return loans
-      .flatMap((loan) =>
-        (loan.repayments || [])
-          .filter((r) => {
-            const date = new Date(r.paymentDate);
-            return date >= startOfWeek && date < endOfWeek;
-          })
-          .map((r) => ({
-            ...r,
-            borrowerName: loan.borrowerName,
-            loanId: loan.id,
-          })),
-      )
+      .filter((loan) => loan.status === "ACTIVE")
+      .flatMap((loan) => {
+        const repayments = [...(loan.repayments || [])].sort(byDate);
+        const nextUnpaid = repayments.find((r) => r.repaymentStatus !== "PAID");
+        const paidThisWeek = repayments.find((r) => {
+          const date = new Date(r.paymentDate);
+          return (
+            r.repaymentStatus === "PAID" &&
+            date >= startOfWeek &&
+            date < endOfWeek
+          );
+        });
+        const current =
+          paidThisWeek &&
+          (!nextUnpaid || new Date(nextUnpaid.paymentDate) >= endOfWeek)
+            ? paidThisWeek
+            : nextUnpaid;
+        return current
+          ? [{ ...current, borrowerName: loan.borrowerName, loanId: loan.id }]
+          : [];
+      })
       .sort((a, b) => {
         // Still-to-collect first, so the actionable rows sit at the top.
         const isPaid = (status: string) => (status === "PAID" ? 1 : 0);
@@ -345,7 +353,7 @@ export default function Dashboard() {
                   Expected This Week
                 </p>
                 <p className="mt-2 text-2xl font-bold text-blue-500">
-                  {formatCurrency(expectedWeeklyRepayments)}
+                  {formatCurrency(collectedThisWeek.expected)}
                 </p>
               </div>
               <div className="p-2 rounded-lg bg-blue-500/10">

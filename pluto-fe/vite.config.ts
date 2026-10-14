@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 5173,
+    // Mirrors the nginx /api proxy used in Docker, so baseUrl "/api" works locally
+    proxy: {
+      "/api": "http://localhost:8080",
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
