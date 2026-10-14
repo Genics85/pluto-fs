@@ -26,6 +26,7 @@ import { type Repayment } from "../types/loan";
 import { toast } from "sonner";
 import { ScoreBadge, scoreClass, scoreLabel } from "../components/ScoreBadge";
 import { currentRepayments, currentWeek } from "../lib/repayments";
+import { interestReceived } from "../lib/loans";
 import {
   AreaChart,
   Area,
@@ -89,12 +90,8 @@ export default function Dashboard() {
     0,
   );
 
-  // Calculate interest earned only from PAID loans
-  const totalInterestEarned = paidLoans.reduce(
-    (sum, loan) =>
-      sum + ((loan.totalPayable || 0) - (loan.principalAmount || 0)),
-    0,
-  );
+  // Interest received: principal × rate, from PAID loans only
+  const totalInterestEarned = interestReceived(loans);
 
   // Average repayment score over active loans that have one (none due yet = null)
   const scoredActiveLoans = activeLoans.filter((l) => l.repaymentScore != null);
@@ -414,9 +411,9 @@ export default function Dashboard() {
         </div>
 
         {/* Repayments This Week & Funding Overview Row */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Repayments This Week */}
-          <div className="lg:col-span-2">
+          <div className="min-w-0">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-medium text-muted-foreground">
                 Repayments This Week
@@ -567,6 +564,19 @@ export default function Dashboard() {
                 </div>
                 <p className="text-lg font-bold text-amber-500">
                   {formatCurrency(interestReceivable)}
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-success/10">
+                    <CheckCircle2 className="h-5 w-5 text-success" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    Interest Received
+                  </span>
+                </div>
+                <p className="text-lg font-bold text-success">
+                  {formatCurrency(totalInterestEarned)}
                 </p>
               </div>
             </div>

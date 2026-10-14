@@ -94,6 +94,8 @@ export default function LoanDetails() {
   };
 
   const paidRepayments = repayments.filter(r => r.repaymentStatus === 'PAID').length;
+  // A loan can only be marked PAID once every repayment is paid (the backend enforces this too).
+  const unpaidCount = repayments.length - paidRepayments;
   const progressPercentage = repayments.length > 0 ? (paidRepayments / repayments.length) * 100 : 0;
 
   // Calculate actual amount paid from repayments with PAID status
@@ -155,7 +157,11 @@ export default function LoanDetails() {
       }).unwrap();
       toast.success(`Loan status updated to ${newStatus}`);
     } catch (error) {
-      toast.error('Failed to update loan status. Please try again.');
+      // 409 carries the reason, e.g. unpaid repayments left when marking PAID.
+      const reason = (error as { status?: number; data?: unknown })?.status === 409
+        ? String((error as { data?: unknown }).data)
+        : 'Please try again.';
+      toast.error(`Failed to update loan status. ${reason}`);
       console.error('Error updating loan status:', error);
     }
   };
@@ -211,7 +217,9 @@ export default function LoanDetails() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="PAID" disabled={unpaidCount > 0}>
+                  {unpaidCount > 0 ? `Paid (${unpaidCount} unpaid left)` : 'Paid'}
+                </SelectItem>
                 <SelectItem value="DEFAULTED">Defaulted</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>

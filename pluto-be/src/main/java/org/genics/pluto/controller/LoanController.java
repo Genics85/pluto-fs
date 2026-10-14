@@ -54,11 +54,15 @@ public class LoanController {
     }
 
     @PostMapping("/{id}/status")
-    public ResponseEntity<Loan> updateStatus(@PathVariable Long id,
-                                             @Valid @RequestBody LoanStatusUpdateRequest request) {
-        return loanService.updateStatus(id, request.getStatus())
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateStatus(@PathVariable Long id,
+                                          @Valid @RequestBody LoanStatusUpdateRequest request) {
+        try {
+            return loanService.updateStatus(id, request.getStatus())
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")

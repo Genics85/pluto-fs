@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.genics.pluto.dto.loan.LoanAddRequest;
 import org.genics.pluto.enums.LoanStatus;
+import org.genics.pluto.enums.RepaymentStatus;
 import org.genics.pluto.model.Borrower;
 import org.genics.pluto.model.Loan;
 import org.genics.pluto.model.Repayment;
@@ -99,9 +100,19 @@ public class LoanService {
         return saved;
     }
 
+    /** Throws IllegalStateException when marking a loan PAID that still has unpaid repayments. */
     public Optional<Loan> updateStatus(Long id, LoanStatus status) {
         return loanRepository.findById(id)
                 .map(loan -> {
+                    if (status == LoanStatus.PAID) {
+                        long unpaid = loan.getRepayments() == null ? 0 : loan.getRepayments().stream()
+                                .filter(r -> r.getRepaymentStatus() != RepaymentStatus.PAID)
+                                .count();
+                        if (unpaid > 0) {
+                            throw new IllegalStateException("Loan still has " + unpaid
+                                    + " unpaid repayment" + (unpaid == 1 ? "" : "s") + "; mark them all paid first");
+                        }
+                    }
                     loan.setStatus(status);
                     log.info("Updated loan {} status to {}", id, status);
                     return loanRepository.save(loan);
